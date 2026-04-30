@@ -34,8 +34,19 @@
   pointer-events: none;
 }
 
+.waiting::after {
+  content: '';
+  position: absolute;
+  inset: 1.2rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .waitingHero,
-.waitingGrid {
+.waitingGrid,
+.waitingTicker {
   position: relative;
   z-index: 1;
 }
@@ -46,6 +57,13 @@
   justify-content: center;
   gap: 1.5rem;
   text-align: left;
+  padding: 1.35rem 1.6rem;
+  background: linear-gradient(135deg, var(--spectator-bar-bg), transparent);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  max-width: min(980px, 100%);
+  width: 100%;
 }
 
 .waitingLogo {
@@ -54,6 +72,7 @@
   object-fit: contain;
   filter: drop-shadow(0 0 24px rgba(232,133,74,0.5));
   animation: pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.45; } }
@@ -71,6 +90,7 @@
   font-weight: 900;
   line-height: 0.95;
   margin-top: 0.25rem;
+  max-width: 12ch;
 }
 
 .waitingMsg {
@@ -93,6 +113,17 @@
   padding: 1.1rem;
   text-align: left;
   box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.waitingPanel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-top: 3px solid var(--accent-primary);
+  opacity: 0.9;
+  pointer-events: none;
 }
 
 .waitingPanelLabel {
@@ -197,6 +228,27 @@
   border-radius: 50%;
   background: var(--accent-primary);
   flex-shrink: 0;
+}
+
+.waitingTicker {
+  width: min(980px, 100%);
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.waitingTicker span {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--spectator-strip-bg);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.8rem;
+  box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 900px) {

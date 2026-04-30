@@ -183,6 +183,14 @@ export default function SpectatorView({
               </div>
             </div>
           </div>
+
+          <div className={styles.waitingTicker} aria-hidden="true">
+            <span>AESSBot</span>
+            <span>Robots sumo</span>
+            <span>Fase 1</span>
+            <span>Repesca</span>
+            <span>Finals</span>
+          </div>
         </div>
       </div>
     );
