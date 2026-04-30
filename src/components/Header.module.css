@@ -1,0 +1,119 @@
+.header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-lg) 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--header-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.logoIcon {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 0 12px rgba(232, 133, 74, 0.45));
+  flex-shrink: 0;
+}
+
+.brand {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+}
+
+.title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: right;
+  max-width: 280px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.spectatorButton {
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-md);
+  height: 2.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  white-space: nowrap;
+}
+
+.spectatorButton:hover {
+  border-color: var(--accent-secondary);
+  color: var(--accent-secondary);
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.themeButton,
+.configButton {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), transform var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.themeButton {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.themeButton:hover {
+  border-color: var(--accent-secondary);
+  color: var(--accent-secondary);
+  transform: translateY(-1px);
+}
+
+.configButton:hover {
+  border-color: var(--border-accent);
+  color: var(--accent-primary);
+  transform: rotate(20deg);
+}
+
+@media (max-width: 600px) {
+  .inner { flex-direction: column; align-items: flex-start; }
+  .subtitle { text-align: left; max-width: 100%; }
+}

@@ -1,0 +1,63 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.fields {
+  display: flex;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.recommendation {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: rgba(240, 192, 64, 0.06);
+  border: 1px solid rgba(240, 192, 64, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.recIcon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.recText {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--accent-warning);
+  min-width: 160px;
+}
+
+.recText strong {
+  color: var(--accent-warning);
+}

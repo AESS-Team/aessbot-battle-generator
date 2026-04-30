@@ -1,0 +1,50 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+}
+
+.icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+  margin-top: 1px;
+}
+
+.message {
+  flex: 1;
+  line-height: 1.5;
+}
+
+.error {
+  background: var(--accent-danger-glow);
+  border-color: rgba(237, 74, 106, 0.25);
+  color: var(--accent-danger);
+}
+
+.warning {
+  background: rgba(240, 192, 64, 0.08);
+  border-color: rgba(240, 192, 64, 0.2);
+  color: var(--accent-warning);
+}
+
+.info {
+  background: var(--accent-secondary-glow);
+  border-color: rgba(74, 158, 237, 0.2);
+  color: var(--accent-secondary);
+}
+
+.success {
+  background: rgba(74, 237, 158, 0.08);
+  border-color: rgba(74, 237, 158, 0.2);
+  color: var(--accent-success);
+}

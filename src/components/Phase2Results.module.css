@@ -1,0 +1,300 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.title { margin-top: var(--space-xs); }
+
+.subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+.timeCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  flex-shrink: 0;
+}
+
+.timeIcon { font-size: 1.2rem; }
+
+.timeValue {
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--accent-secondary);
+  line-height: 1;
+}
+
+.timeLabel {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.infoBox {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+  background: rgba(232, 133, 74, 0.05);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+}
+
+.infoIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.infoBox strong {
+  display: block;
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.infoBox p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.progressBox {
+  background: rgba(74, 158, 237, 0.08);
+  border: 1px solid rgba(74, 158, 237, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+}
+
+.progressBox strong {
+  color: var(--text-primary);
+}
+
+.progressBox p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.teamGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.teamCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  transition: border-color var(--transition-fast);
+}
+
+.teamCard:hover {
+  border-color: rgba(240, 192, 64, 0.3);
+}
+
+.teamIdx {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 1.5rem;
+}
+
+.teamName {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.roundList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.roundCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.roundHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.roundSubtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+.roundTeams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.winnerBtn {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.winnerBtn:hover {
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.winnerBtnActive {
+  background: var(--accent-secondary-glow);
+  border-color: rgba(74, 158, 237, 0.35);
+  color: var(--accent-secondary);
+}
+
+.standingsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.standingsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.standingsSubtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+.standingsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.standingsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.standingsRowQualified {
+  border-color: rgba(74, 237, 158, 0.24);
+  background: rgba(74, 237, 158, 0.05);
+}
+
+.standingsRowRepesca {
+  border-color: rgba(232, 133, 74, 0.18);
+  background: rgba(232, 133, 74, 0.04);
+}
+
+.standingsRowRepescaQualified {
+  border-color: rgba(74, 158, 237, 0.28);
+  background: rgba(74, 158, 237, 0.08);
+}
+
+.standingsPos {
+  min-width: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.standingsTeam {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.standingsStats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.pointsBadge,
+.concededBadge,
+.playedBadge,
+.standingsBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.pointsBadge {
+  background: rgba(74, 237, 158, 0.1);
+  color: var(--accent-success);
+}
+
+.concededBadge {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-muted);
+}
+
+.playedBadge {
+  background: rgba(232, 133, 74, 0.08);
+  color: var(--accent-primary);
+}
+
+.standingsBadge {
+  min-width: 2rem;
+  background: rgba(74, 158, 237, 0.12);
+  color: var(--accent-secondary);
+}

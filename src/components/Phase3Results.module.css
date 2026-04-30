@@ -1,0 +1,492 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.timeCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.timeIcon { font-size: 1.1rem; }
+
+.timeValue {
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--accent-secondary);
+  line-height: 1;
+}
+
+.timeLabel {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.title { margin-top: var(--space-xs); }
+
+.subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+/* Summary stats row */
+.summaryRow {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  min-width: 130px;
+  flex: 1;
+}
+
+.summaryValue {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summaryCard:first-child .summaryValue {
+  font-family: var(--font-sans);
+  color: var(--accent-primary);
+}
+
+.summaryLabel {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* Seed legend */
+.seedLegendSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.seedLegendHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.seedLegendTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.seedLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.seedItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.seedNum {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.seedName {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Champion banner */
+.championBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: linear-gradient(135deg, rgba(232, 133, 74, 0.12), rgba(240, 192, 64, 0.08));
+  border: 1px solid rgba(232, 133, 74, 0.4);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-xl);
+  animation: championIn 0.4s ease both;
+}
+
+@keyframes championIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.championTrophy {
+  font-size: 2.2rem;
+  flex-shrink: 0;
+}
+
+.championLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-primary);
+}
+
+.championName {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+/* Score registration section */
+.scoresSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.scoresGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.scoresGroupLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-xs);
+}
+
+.scoresGroupMatches {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Individual match row */
+.matchRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast);
+  flex-wrap: wrap;
+}
+
+.matchRow:not(.matchRowLocked):hover {
+  border-color: var(--border-default);
+}
+
+.matchRowLocked {
+  background: var(--bg-surface);
+}
+
+.matchRowFinal {
+  border-color: rgba(232, 133, 74, 0.25);
+  background: rgba(232, 133, 74, 0.04);
+}
+
+.matchRowLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  min-width: 2.8rem;
+  flex-shrink: 0;
+}
+
+.matchRowTeams {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.matchRowTeam {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.matchRowTeamWinner .matchRowName {
+  color: var(--accent-success);
+}
+
+.matchRowSeed {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  min-width: 1.5rem;
+}
+
+.matchRowName {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+  transition: none;
+}
+
+.matchRowNameFocused {
+  color: var(--accent-primary);
+}
+
+.matchRowVs {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.matchRowPills {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+  width: calc((1.85rem * 3) + (3px * 2));
+}
+
+.matchRowPending {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-left: auto;
+}
+
+/* Score pills */
+.pill {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 5px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex: 0 0 1.85rem;
+  outline: none;
+}
+
+.pill:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: var(--accent-primary-glow);
+}
+
+.pillSelected {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--on-accent-primary);
+  box-shadow: none;
+}
+
+.pillSelected:hover {
+  background: var(--accent-primary);
+  color: var(--on-accent-primary);
+}
+
+.pill:focus-visible {
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.22);
+}
+
+/* SVG Bracket wrapper */
+.bracketWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-xs);
+}
+
+/* Match cards inside foreignObject */
+.svgCard {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--bracket-card-bg);
+  border: 1px solid var(--bracket-card-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 6px;
+  transition: border-color var(--transition-fast);
+}
+
+.svgCard:hover {
+  border-color: var(--border-default);
+}
+
+.svgCardPlaceholder {
+  border-style: dashed;
+}
+
+.svgCardFinal {
+  border-color: rgba(232, 133, 74, 0.4);
+  background: rgba(232, 133, 74, 0.06);
+}
+
+.svgCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.svgCardLabel {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.svgCardScore {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: var(--bracket-score-text);
+}
+
+.svgCardTeam {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border-radius: 6px;
+  min-height: 26px;
+  padding: 4px 8px;
+}
+
+.svgCardTeamResolved {
+  background: var(--bracket-team-bg);
+  border: 1px solid var(--bracket-team-border);
+}
+
+.svgCardTeamWinner {
+  background: var(--bracket-team-winner-bg);
+  border-color: var(--bracket-team-winner-border);
+}
+
+.svgCardTeamLoser {
+  filter: saturate(0.65);
+}
+
+.svgCardTeamPending {
+  background: var(--bracket-team-pending-bg);
+}
+
+.svgSeedNum {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  min-width: 2rem;
+  text-align: left;
+}
+
+.svgTeamName {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.svgCardTeamPending .svgTeamName {
+  color: var(--text-muted);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.svgCardTeamResolved .svgTeamName {
+  color: var(--bracket-team-resolved-text);
+  font-weight: 700;
+}
+
+.svgCardTeamLoser .svgTeamName,
+.svgCardTeamLoser .svgSeedNum {
+  color: var(--text-muted);
+}
+
+.svgDivider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0 2px;
+}
