@@ -3,8 +3,10 @@ import { computeSecondsLeft, TIMER_DURATION, type TimerState } from '../logic/ti
 import type { Bracket } from '../logic/bracketGenerator';
 import {
   getScoreTotals,
+  getRoundCount,
   getWinner,
   isScoreComplete,
+  normalizeRoundsToWin,
   normalizeScoreMap,
   type MatchScore,
 } from '../logic/scoreUtils';
@@ -38,8 +40,12 @@ interface PersistedState {
   phase3BracketPublished?: boolean;
   activePhase: string;
   hasGenerated: boolean;
-  config: { qualifiedCount: number; simultaneousBattles: number };
+  config: { qualifiedCount: number; simultaneousBattles: number; roundsToWin?: number };
   timerState?: TimerState;
+}
+
+function getRoundsToWin(state: PersistedState | null): number {
+  return normalizeRoundsToWin(state?.config?.roundsToWin);
 }
 
 function loadState(): PersistedState | null {
@@ -47,10 +53,16 @@ function loadState(): PersistedState | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
+    const roundsToWin = normalizeRoundsToWin(parsed.config?.roundsToWin);
+    const roundCount = getRoundCount(roundsToWin);
     return {
       ...parsed,
-      battleScores: normalizeScoreMap(parsed.battleScores),
-      bracketScores: normalizeScoreMap(parsed.bracketScores),
+      config: {
+        ...parsed.config,
+        roundsToWin,
+      },
+      battleScores: normalizeScoreMap(parsed.battleScores, roundCount),
+      bracketScores: normalizeScoreMap(parsed.bracketScores, roundCount),
     };
   } catch { return null; }
 }
@@ -68,8 +80,9 @@ function resolveChampion(state: PersistedState | null): string | null {
   if (!state.phase3BracketPublished) return null;
 
   const { teams, result, battleScores, bracketScores, repescaWinners, config } = state;
-  const standings = buildStandings(teams, result.battles, battleScores);
-  const completedCount = result.battles.filter(b => isScoreComplete(battleScores[b.id])).length;
+  const roundsToWin = getRoundsToWin(state);
+  const standings = buildStandings(teams, result.battles, battleScores, roundsToWin);
+  const completedCount = result.battles.filter(b => isScoreComplete(battleScores[b.id], roundsToWin)).length;
   const allPhase1ResultsRegistered = completedCount === result.battles.length && result.battles.length > 0;
   if (!allPhase1ResultsRegistered) return null;
 
@@ -87,14 +100,14 @@ function resolveChampion(state: PersistedState | null): string | null {
   if (!bracket || getBracketSignature(bracket) !== finalistTeams.join('\u001f')) return null;
 
   const qf = bracket.quarterfinals;
-  const qf1W = getWinner(qf[0].seedA.name, qf[0].seedB.name, bracketScores.qf1);
-  const qf2W = getWinner(qf[1].seedA.name, qf[1].seedB.name, bracketScores.qf2);
-  const qf3W = getWinner(qf[2].seedA.name, qf[2].seedB.name, bracketScores.qf3);
-  const qf4W = getWinner(qf[3].seedA.name, qf[3].seedB.name, bracketScores.qf4);
-  const sf1W = qf1W && qf2W ? getWinner(qf1W, qf2W, bracketScores.sf1) : null;
-  const sf2W = qf3W && qf4W ? getWinner(qf3W, qf4W, bracketScores.sf2) : null;
+  const qf1W = getWinner(qf[0].seedA.name, qf[0].seedB.name, bracketScores.qf1, roundsToWin);
+  const qf2W = getWinner(qf[1].seedA.name, qf[1].seedB.name, bracketScores.qf2, roundsToWin);
+  const qf3W = getWinner(qf[2].seedA.name, qf[2].seedB.name, bracketScores.qf3, roundsToWin);
+  const qf4W = getWinner(qf[3].seedA.name, qf[3].seedB.name, bracketScores.qf4, roundsToWin);
+  const sf1W = qf1W && qf2W ? getWinner(qf1W, qf2W, bracketScores.sf1, roundsToWin) : null;
+  const sf2W = qf3W && qf4W ? getWinner(qf3W, qf4W, bracketScores.sf2, roundsToWin) : null;
 
-  return sf1W && sf2W ? getWinner(sf1W, sf2W, bracketScores.final) : null;
+  return sf1W && sf2W ? getWinner(sf1W, sf2W, bracketScores.final, roundsToWin) : null;
 }
 
 
@@ -222,6 +235,8 @@ export default function SpectatorView({
   }
 
   const { teams, result, battleScores, bracketScores, repescaWinners, activePhase, config, timerState } = state;
+  const roundsToWin = getRoundsToWin(state);
+  const roundCount = getRoundCount(roundsToWin);
 
   // Timer
   const timer = timerState ?? { pausedSecondsLeft: TIMER_DURATION, startedAt: null };
@@ -234,8 +249,8 @@ export default function SpectatorView({
   const ss = secondsLeft % 60;
 
   // Standings
-  const standings = buildStandings(teams, result.battles, battleScores);
-  const completedCount = result.battles.filter(b => isScoreComplete(battleScores[b.id])).length;
+  const standings = buildStandings(teams, result.battles, battleScores, roundsToWin);
+  const completedCount = result.battles.filter(b => isScoreComplete(battleScores[b.id], roundsToWin)).length;
   const allPhase1ResultsRegistered =
     result !== null && completedCount === result.battles.length && result.battles.length > 0;
   const rankedTeams = allPhase1ResultsRegistered ? standings.map((row) => row.team) : [];
@@ -257,7 +272,7 @@ export default function SpectatorView({
   const hasEnoughTeamsForQuarterfinals = rankedTeams.length >= FINAL_STAGE_SIZE;
 
   // Phase 1 current round
-  const currentRound = result.rounds.find(r => r.battles.some(b => !isScoreComplete(battleScores[b.id]))) ?? null;
+  const currentRound = result.rounds.find(r => r.battles.some(b => !isScoreComplete(battleScores[b.id], roundsToWin))) ?? null;
   const totalRounds = result.rounds.length;
 
   // Phase 3 bracket
@@ -286,13 +301,13 @@ export default function SpectatorView({
     const [qf2A, qf2B] = [qf[1].seedA.name, qf[1].seedB.name];
     const [qf3A, qf3B] = [qf[2].seedA.name, qf[2].seedB.name];
     const [qf4A, qf4B] = [qf[3].seedA.name, qf[3].seedB.name];
-    const qf1W = getWinner(qf1A, qf1B, bracketScores['qf1']);
-    const qf2W = getWinner(qf2A, qf2B, bracketScores['qf2']);
-    const qf3W = getWinner(qf3A, qf3B, bracketScores['qf3']);
-    const qf4W = getWinner(qf4A, qf4B, bracketScores['qf4']);
-    const sf1W = qf1W && qf2W ? getWinner(qf1W, qf2W, bracketScores['sf1']) : null;
-    const sf2W = qf3W && qf4W ? getWinner(qf3W, qf4W, bracketScores['sf2']) : null;
-    champion = sf1W && sf2W ? getWinner(sf1W, sf2W, bracketScores['final']) : null;
+    const qf1W = getWinner(qf1A, qf1B, bracketScores['qf1'], roundsToWin);
+    const qf2W = getWinner(qf2A, qf2B, bracketScores['qf2'], roundsToWin);
+    const qf3W = getWinner(qf3A, qf3B, bracketScores['qf3'], roundsToWin);
+    const qf4W = getWinner(qf4A, qf4B, bracketScores['qf4'], roundsToWin);
+    const sf1W = qf1W && qf2W ? getWinner(qf1W, qf2W, bracketScores['sf1'], roundsToWin) : null;
+    const sf2W = qf3W && qf4W ? getWinner(qf3W, qf4W, bracketScores['sf2'], roundsToWin) : null;
+    champion = sf1W && sf2W ? getWinner(sf1W, sf2W, bracketScores['final'], roundsToWin) : null;
 
     currentBracketMatchId = [
       { id: 'qf1', ready: true },
@@ -302,7 +317,7 @@ export default function SpectatorView({
       { id: 'sf1', ready: Boolean(qf1W && qf2W) },
       { id: 'sf2', ready: Boolean(qf3W && qf4W) },
       { id: 'final', ready: Boolean(sf1W && sf2W) },
-    ].find((match) => match.ready && !isScoreComplete(bracketScores[match.id]))?.id ?? null;
+    ].find((match) => match.ready && !isScoreComplete(bracketScores[match.id], roundsToWin))?.id ?? null;
 
     // Resolved bracket with winner names for the SVG display
     const sf1A = qf1W ?? 'Guanyador QF 1';
@@ -314,13 +329,13 @@ export default function SpectatorView({
     resolvedBracket = {
       quarterfinals: computedBracket.quarterfinals.map((match) => ({
         ...match,
-        score: getScoreTotals(bracketScores[match.id]),
+        score: getScoreTotals(bracketScores[match.id], roundCount),
       })),
       semifinals: [
-        { ...computedBracket.semifinals[0], seedA: { seed: 0, name: sf1A }, seedB: { seed: 0, name: sf1B }, score: getScoreTotals(bracketScores.sf1) },
-        { ...computedBracket.semifinals[1], seedA: { seed: 0, name: sf2A }, seedB: { seed: 0, name: sf2B }, score: getScoreTotals(bracketScores.sf2) },
+        { ...computedBracket.semifinals[0], seedA: { seed: 0, name: sf1A }, seedB: { seed: 0, name: sf1B }, score: getScoreTotals(bracketScores.sf1, roundCount) },
+        { ...computedBracket.semifinals[1], seedA: { seed: 0, name: sf2A }, seedB: { seed: 0, name: sf2B }, score: getScoreTotals(bracketScores.sf2, roundCount) },
       ],
-      final: { ...computedBracket.final, seedA: { seed: 0, name: finA }, seedB: { seed: 0, name: finB }, score: getScoreTotals(bracketScores.final) },
+      final: { ...computedBracket.final, seedA: { seed: 0, name: finA }, seedB: { seed: 0, name: finB }, score: getScoreTotals(bracketScores.final, roundCount) },
     };
     currentBracketMatch = currentBracketMatchId
       ? [
@@ -400,8 +415,8 @@ export default function SpectatorView({
                 <div className={styles.battleList}>
                   {currentRound.battles.map((battle) => {
                     const sc = battleScores[battle.id];
-                    const done = isScoreComplete(sc);
-                    const totals = getScoreTotals(sc);
+                    const done = isScoreComplete(sc, roundsToWin);
+                    const totals = getScoreTotals(sc, roundCount);
                     const aWon = done && totals.teamA > totals.teamB;
                     const bWon = done && totals.teamB > totals.teamA;
                     return (

@@ -8,6 +8,8 @@
  * - no repeated battles
  */
 
+import { getRoundCount, ROUND_COUNT, ROUND_DURATION_MIN } from './scoreUtils';
+
 export interface Battle {
   id: string;
   teamA: string;
@@ -42,10 +44,16 @@ export interface CompetitionConfig {
   qualifiedCount: number;
   /** Number of simultaneous battles during Phase 1 (default: 1). */
   simultaneousBattles: number;
+  /** Rounds a team must win to take a combat (2 = best of 3, 3 = best of 5). */
+  roundsToWin: number;
 }
 
 /** Duration of a single battle in minutes. */
 export const BATTLE_DURATION_MIN = ROUND_COUNT * ROUND_DURATION_MIN;
+
+export function calcBattleDuration(roundsToWin = 2): number {
+  return getRoundCount(roundsToWin) * ROUND_DURATION_MIN;
+}
 
 /**
  * Calculate the estimated duration of a phase given a list of rounds.
@@ -55,10 +63,11 @@ export const BATTLE_DURATION_MIN = ROUND_COUNT * ROUND_DURATION_MIN;
  * @param simultaneous - Simultaneous battles per slot.
  * @returns Total estimated minutes.
  */
-export function calcPhase1Duration(rounds: Round[], simultaneous: number): number {
+export function calcPhase1Duration(rounds: Round[], simultaneous: number, roundsToWin = 2): number {
+  const battleDuration = calcBattleDuration(roundsToWin);
   return rounds.reduce((total, round) => {
     const slots = Math.ceil(round.battles.length / simultaneous);
-    return total + slots * BATTLE_DURATION_MIN;
+    return total + slots * battleDuration;
   }, 0);
 }
 
@@ -210,4 +219,3 @@ export function generateBattles(
 
   return { battles, rounds, teamStats, warnings };
 }
-import { ROUND_COUNT, ROUND_DURATION_MIN } from './scoreUtils';

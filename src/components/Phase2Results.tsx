@@ -1,4 +1,4 @@
-import { formatDuration, BATTLE_DURATION_MIN } from '../logic/battleGenerator';
+import { calcBattleDuration, formatDuration } from '../logic/battleGenerator';
 import { buildPhase2Standings } from '../logic/phase2Standings';
 import { type StandingRow } from '../logic/standingsUtils';
 import styles from './Phase2Results.module.css';
@@ -9,6 +9,7 @@ interface Props {
   repescaSlots: number;
   repescaWinners: string[];
   standings: StandingRow[];
+  roundsToWin: number;
   onRepescaWinnerChange: (roundIndex: number, winner: string) => void;
   onSimulateRepesca: () => void;
 }
@@ -16,7 +17,7 @@ interface Props {
 /**
  * Displays the repesca (Phase 2) teams.
  * These teams fight in a battle royale (round-robin) to determine the remaining knockout slots.
- * Duration is estimated at 3 min/battle with 1 simultaneous battle.
+ * Duration is estimated from the configured rounds per combat with 1 simultaneous battle.
  *
  * @param repescaTeams - Teams that did not qualify directly.
  * @param qualifiedCount - Number of direct qualified slots (context).
@@ -28,12 +29,13 @@ export default function Phase2Results({
   repescaSlots,
   repescaWinners,
   standings,
+  roundsToWin,
   onRepescaWinnerChange,
   onSimulateRepesca,
 }: Props) {
   const r = repescaTeams.length;
   const totalBattles = repescaSlots;
-  const estimatedMinutes = totalBattles * BATTLE_DURATION_MIN;
+  const estimatedMinutes = totalBattles * calcBattleDuration(roundsToWin);
   const completedRounds = repescaWinners.filter(Boolean).length;
   const repescaRounds = buildRepescaRounds(repescaTeams, repescaSlots, repescaWinners);
   const qualifiedFromRepesca = repescaWinners.filter(Boolean);

@@ -34,6 +34,10 @@ export default function CompetitionConfigPanel({ config, onChange, teamCount, ma
     onChange({ ...config, simultaneousBattles: clamped });
   }
 
+  function handleRoundsToWin(val: number) {
+    onChange({ ...config, roundsToWin: val === 3 ? 3 : 2 });
+  }
+
   function applyRecommendation() {
     onChange({ ...config, fightCount: maxUnique });
   }
@@ -138,6 +142,38 @@ export default function CompetitionConfigPanel({ config, onChange, teamCount, ma
           </div>
           <span className={styles.hint}>
             Fase 2 i 3: sempre 1 combat alhora
+          </span>
+        </div>
+
+        {/* Victory condition */}
+        <div className={styles.field}>
+          <span className={styles.label} id="cfg-rounds-to-win-label">
+            Rondes per guanyar combat
+          </span>
+          <div
+            className={styles.stepper}
+            role="group"
+            aria-labelledby="cfg-rounds-to-win-label"
+          >
+            <button
+              type="button"
+              className={`btn ${config.roundsToWin === 2 ? 'btn--primary' : 'btn--ghost'}`}
+              onClick={() => handleRoundsToWin(2)}
+              aria-pressed={config.roundsToWin === 2}
+            >
+              Guanya a 2
+            </button>
+            <button
+              type="button"
+              className={`btn ${config.roundsToWin === 3 ? 'btn--primary' : 'btn--ghost'}`}
+              onClick={() => handleRoundsToWin(3)}
+              aria-pressed={config.roundsToWin === 3}
+            >
+              Guanya a 3
+            </button>
+          </div>
+          <span className={styles.hint}>
+            {config.roundsToWin === 2 ? 'Màxim 3 rondes per combat' : 'Màxim 5 rondes per combat'}
           </span>
         </div>
       </div>

@@ -11,9 +11,10 @@ import { generateBattles, type CompetitionConfig, type BattleResult } from './lo
 import { generateBracket, type Bracket } from './logic/bracketGenerator';
 import { DEFAULT_TIMER_STATE, TIMER_DURATION, type TimerState } from './logic/timerUtils';
 import {
-  ROUND_COUNT,
   createEmptyScore,
+  getRoundCount,
   isScoreComplete,
+  normalizeRoundsToWin,
   normalizeScoreMap,
   getWinnerSide,
   type MatchScore,
@@ -26,6 +27,13 @@ import styles from './App.module.css';
 const STORAGE_KEY = 'aessbot-v1';
 const THEME_STORAGE_KEY = 'aessbot-theme';
 type ThemeMode = 'dark' | 'light';
+
+const DEFAULT_COMPETITION_CONFIG: CompetitionConfig = {
+  fightCount: 8,
+  qualifiedCount: 7,
+  simultaneousBattles: 1,
+  roundsToWin: 2,
+};
 
 function loadTheme(): ThemeMode {
   try {
@@ -40,15 +48,36 @@ function loadPersistedState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
+    const config = normalizeCompetitionConfig(parsed.config);
+    const roundCount = getRoundCount(config.roundsToWin);
     return {
       ...parsed,
-      battleScores: normalizeScoreMap(parsed.battleScores),
-      bracketScores: normalizeScoreMap(parsed.bracketScores),
+      config,
+      battleScores: normalizeScoreMap(parsed.battleScores, roundCount),
+      bracketScores: normalizeScoreMap(parsed.bracketScores, roundCount),
       timerState: normalizeTimerState(parsed.timerState),
     };
   } catch {
     return null;
   }
+}
+
+function normalizeCompetitionConfig(config: unknown): CompetitionConfig {
+  if (!config || typeof config !== 'object') return DEFAULT_COMPETITION_CONFIG;
+  const candidate = config as Partial<CompetitionConfig>;
+
+  return {
+    fightCount: Number.isFinite(Number(candidate.fightCount))
+      ? Math.max(1, Math.min(Number(candidate.fightCount), 30))
+      : DEFAULT_COMPETITION_CONFIG.fightCount,
+    qualifiedCount: Number.isFinite(Number(candidate.qualifiedCount))
+      ? Math.max(1, Math.min(Number(candidate.qualifiedCount), 8))
+      : DEFAULT_COMPETITION_CONFIG.qualifiedCount,
+    simultaneousBattles: Number.isFinite(Number(candidate.simultaneousBattles))
+      ? Math.max(1, Math.min(Number(candidate.simultaneousBattles), 8))
+      : DEFAULT_COMPETITION_CONFIG.simultaneousBattles,
+    roundsToWin: normalizeRoundsToWin(candidate.roundsToWin),
+  };
 }
 
 function normalizeTimerState(timerState: unknown): TimerState {
@@ -92,11 +121,7 @@ export default function App() {
   const FINAL_STAGE_SIZE = 8;
 
   const [teams, setTeams] = useState<string[]>(_persisted?.teams ?? []);
-  const [config, setConfig] = useState<CompetitionConfig>(_persisted?.config ?? {
-    fightCount: 8,
-    qualifiedCount: 7,
-    simultaneousBattles: 1,
-  });
+  const [config, setConfig] = useState<CompetitionConfig>(_persisted?.config ?? DEFAULT_COMPETITION_CONFIG);
   const [result, setResult] = useState<BattleResult | null>(_persisted?.result ?? null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [hasGenerated, setHasGenerated] = useState<boolean>(_persisted?.hasGenerated ?? false);
@@ -184,23 +209,24 @@ export default function App() {
 
   function handleBracketScoreChange(matchId: string, score: MatchScore) {
     setBracketScores((prev) => {
-      const prevWinner = getWinnerSide(prev[matchId]);
-      const newWinner = getWinnerSide(score);
+      const prevWinner = getWinnerSide(prev[matchId], config.roundsToWin);
+      const newWinner = getWinnerSide(score, config.roundsToWin);
       const winnerChanged = prevWinner !== newWinner;
+      const roundCount = getRoundCount(config.roundsToWin);
 
       const next = { ...prev, [matchId]: score };
 
       if (winnerChanged) {
         if (matchId === 'qf1' || matchId === 'qf2') {
-          next.sf1 = createEmptyScore();
-          next.final = createEmptyScore();
+          next.sf1 = createEmptyScore(roundCount);
+          next.final = createEmptyScore(roundCount);
         }
         if (matchId === 'qf3' || matchId === 'qf4') {
-          next.sf2 = createEmptyScore();
-          next.final = createEmptyScore();
+          next.sf2 = createEmptyScore(roundCount);
+          next.final = createEmptyScore(roundCount);
         }
         if (matchId === 'sf1' || matchId === 'sf2') {
-          next.final = createEmptyScore();
+          next.final = createEmptyScore(roundCount);
         }
       }
 
@@ -216,7 +242,7 @@ export default function App() {
     }
 
     setTeams((prev) => {
-      const newNames = names.filter((n) => !prev.includes(n));
+      const newNames = names.filter((n, index) => !prev.includes(n) && names.indexOf(n) === index);
       return [...prev, ...newNames];
     });
     resetCompetitionState();
@@ -264,9 +290,10 @@ export default function App() {
       return;
     }
 
+    const roundCount = getRoundCount(config.roundsToWin);
     const simulatedScores = result.battles.reduce<BattleScores>((acc, battle) => {
       acc[battle.id] = {
-        rounds: Array.from({ length: ROUND_COUNT }, () => (Math.random() > 0.5 ? 'teamA' : 'teamB')),
+        rounds: Array.from({ length: roundCount }, () => (Math.random() > 0.5 ? 'teamA' : 'teamB')),
       };
       return acc;
     }, {});
@@ -295,9 +322,9 @@ export default function App() {
     setPhase3BracketPublished(false);
   }
 
-  const standings = result ? buildStandings(teams, result.battles, battleScores) : [];
+  const standings = result ? buildStandings(teams, result.battles, battleScores, config.roundsToWin) : [];
   const completedBattleCount = result
-    ? result.battles.filter((battle) => isScoreComplete(battleScores[battle.id])).length
+    ? result.battles.filter((battle) => isScoreComplete(battleScores[battle.id], config.roundsToWin)).length
     : 0;
   const allPhase1ResultsRegistered =
     result !== null && completedBattleCount === result.battles.length && result.battles.length > 0;
@@ -327,7 +354,7 @@ export default function App() {
   const computedBracket = bracketReady && getBracketSignature(phase3Bracket) === finalistSignature
     ? phase3Bracket
     : null;
-  const isPhase3Complete = computedBracket !== null && getWinnerSide(bracketScores.final) !== null;
+  const isPhase3Complete = computedBracket !== null && getWinnerSide(bracketScores.final, config.roundsToWin) !== null;
 
   function handleGeneratePhase3Bracket() {
     if (!bracketReady) return;
@@ -521,6 +548,7 @@ export default function App() {
                       battles={result.battles}
                       rounds={result.rounds}
                       simultaneousBattles={config.simultaneousBattles}
+                      roundsToWin={config.roundsToWin}
                       onRegenerate={handleRegenerate}
                       onSimulateResults={handleSimulatePhase1Results}
                       battleScores={battleScores}
@@ -542,6 +570,7 @@ export default function App() {
                         repescaSlots={repescaSlots}
                         repescaWinners={repescaWinners}
                         standings={standings}
+                        roundsToWin={config.roundsToWin}
                         onRepescaWinnerChange={handleRepescaWinnerChange}
                         onSimulateRepesca={handleSimulateRepesca}
                       />
@@ -604,6 +633,7 @@ export default function App() {
                           directQualifiedCount={directQualifiedCount}
                           repescaCount={filledRepescaWinners.length}
                           bracketScores={bracketScores}
+                          roundsToWin={config.roundsToWin}
                           onBracketScoreChange={handleBracketScoreChange}
                         />
                       </>

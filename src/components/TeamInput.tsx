@@ -2,11 +2,22 @@ import { useState, useRef, type KeyboardEvent } from 'react';
 import styles from './TeamInput.module.css';
 
 const DEMO_NAMES = [
-  'IronFist', 'SteelBeast', 'TitanX', 'NanoBot', 'MegaSumo', 'CerberusBot',
-  'ThunderBot', 'AlphaBot', 'OmegaBot', 'RoboRam', 'BattleDroid', 'CrushBot',
-  'TornadoBot', 'SteelWolf', 'TechBeast', 'CyberRam', 'QuantumBot', 'VortexBot',
-  'PhalanxBot', 'MeteorBot', 'HydraBot', 'NexusBot', 'ZeusBot', 'RaptorBot',
-  'CobraBot', 'PhoenixBot', 'SteelDragon', 'GladiatorX', 'ColossusBot', 'IronGuard',
+  'Ashfu',
+  'Bobobot',
+  'Brouston',
+  'CabraLabs 2.0',
+  'Clanker',
+  'Dodgers',
+  'Eco byte',
+  'FLYINGBOTS',
+  'ForceVector Robotics',
+  'Goat Slayer',
+  'La cucaracha',
+  'Manelxina',
+  'Pajaro Azul',
+  'Payo Industries',
+  'Pip install IA',
+  'SigmaBot',
 ];
 
 function pickDemoTeams(existing: string[]): string[] {
@@ -52,7 +63,7 @@ export default function TeamInput({ teams, onAdd, onRemove, onClear }: Props) {
     const names = bulkValue
       .split('\n')
       .map((n) => n.trim())
-      .filter((n) => n && !teams.includes(n));
+      .filter((n, index, allNames) => n && !teams.includes(n) && allNames.indexOf(n) === index);
     if (names.length > 0 && !onAdd(names)) return;
     setBulkValue('');
     setShowBulk(false);
