@@ -17,14 +17,15 @@ export function buildStandings(
   teams: string[],
   battles: BattleLike[],
   scores: Record<string, MatchScore>,
+  roundsToWin = 2,
 ): StandingRow[] {
   const points = new Map<string, number>(teams.map((t) => [t, 0]));
   const pl = new Map<string, number>(teams.map((t) => [t, 0]));
 
   for (const battle of battles) {
     const score = scores[battle.id];
-    if (!isScoreComplete(score)) continue;
-    const winnerSide = getWinnerSide(score);
+    if (!isScoreComplete(score, roundsToWin)) continue;
+    const winnerSide = getWinnerSide(score, roundsToWin);
 
     pl.set(battle.teamA, (pl.get(battle.teamA) ?? 0) + 1);
     pl.set(battle.teamB, (pl.get(battle.teamB) ?? 0) + 1);

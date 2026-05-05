@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import type { Round } from '../logic/battleGenerator';
 import BattleTimer from './BattleTimer';
-import { calcPhase1Duration, formatDuration, BATTLE_DURATION_MIN } from '../logic/battleGenerator';
+import { calcBattleDuration, calcPhase1Duration, formatDuration } from '../logic/battleGenerator';
 import { copyToClipboard, formatBattlesAsText, downloadAsText } from '../logic/exportUtils';
 import type { Battle } from '../logic/battleGenerator';
 import type { TimerState } from '../logic/timerUtils';
 import {
-  ROUND_COUNT,
+  getRoundCount,
   getScoreTotals,
   isScoreComplete,
   updateRoundWinner,
@@ -19,6 +19,7 @@ interface Props {
   rounds: Round[];
   battles: Battle[];
   simultaneousBattles: number;
+  roundsToWin: number;
   onRegenerate: () => void;
   onSimulateResults: () => void;
   battleScores: Record<string, MatchScore>;
@@ -45,6 +46,7 @@ export default function Phase1Results({
   rounds,
   battles,
   simultaneousBattles,
+  roundsToWin,
   onRegenerate,
   onSimulateResults,
   battleScores,
@@ -65,11 +67,13 @@ export default function Phase1Results({
     new Set(teamSchedulesSeed(rounds))
   );
 
-  const estimatedMinutes = calcPhase1Duration(rounds, simultaneousBattles);
+  const roundCount = getRoundCount(roundsToWin);
+  const battleDuration = calcBattleDuration(roundsToWin);
+  const estimatedMinutes = calcPhase1Duration(rounds, simultaneousBattles, roundsToWin);
   const teamSchedules = buildTeamSchedules(rounds);
 
   const currentRoundNum = rounds.find(
-    (r) => r.battles.some((b) => !isScoreComplete(battleScores[b.id]))
+    (r) => r.battles.some((b) => !isScoreComplete(battleScores[b.id], roundsToWin))
   )?.number ?? null;
 
   function toggleRound(num: number) {
@@ -188,7 +192,7 @@ export default function Phase1Results({
         <div className={styles.timeDetails}>
           <span>{rounds.length} jornades</span>
           <span className={styles.timeSep}>×</span>
-          <span>~{Math.ceil((rounds[0]?.battles.length ?? 1) / simultaneousBattles) * BATTLE_DURATION_MIN} min/jornada (3 rondes d'1 min)</span>
+          <span>~{Math.ceil((rounds[0]?.battles.length ?? 1) / simultaneousBattles) * battleDuration} min/jornada ({roundCount} rondes d'1 min)</span>
           <span className={styles.timeSep}>({simultaneousBattles} combat{simultaneousBattles > 1 ? 's' : ''} simultani{simultaneousBattles > 1 ? 's' : ''})</span>
         </div>
       </div>
@@ -261,7 +265,7 @@ export default function Phase1Results({
           {rounds.map((round) => {
             const isOpen = expandedRounds.has(round.number);
             const isCurrent = currentRoundNum === round.number;
-            const isCompleted = round.battles.every((b) => isScoreComplete(battleScores[b.id]));
+            const isCompleted = round.battles.every((b) => isScoreComplete(battleScores[b.id], roundsToWin));
             return (
               <div
                 key={round.number}
@@ -306,6 +310,7 @@ export default function Phase1Results({
                         </div>
                         <ScoreInputs
                           battle={battle}
+                          roundCount={roundCount}
                           score={battleScores[battle.id]}
                           onScoreChange={onBattleScoreChange}
                         />
@@ -350,7 +355,15 @@ export default function Phase1Results({
                         <span className={styles.battleMatchup}>J{matchup.round} · {teamSchedule.team} - {matchup.opponent}</span>
                       </div>
                       <ScoreInputs
-                        battle={{ id: matchup.battleId, teamA: teamSchedule.team, teamB: matchup.opponent, repeated: false }}
+                        battle={{
+                          id: matchup.battleId,
+                          teamA: matchup.originalTeamA,
+                          teamB: matchup.originalTeamB,
+                          repeated: false,
+                        }}
+                        displayTeamA={teamSchedule.team}
+                        displayTeamB={matchup.opponent}
+                        roundCount={roundCount}
                         score={battleScores[matchup.battleId]}
                         onScoreChange={onBattleScoreChange}
                       />
@@ -398,25 +411,39 @@ export default function Phase1Results({
 
 function ScoreInputs({
   battle,
+  displayTeamA,
+  displayTeamB,
+  roundCount,
   score,
   onScoreChange,
 }: {
   battle: Battle;
+  displayTeamA?: string;
+  displayTeamB?: string;
+  roundCount: number;
   score?: MatchScore;
   onScoreChange: (battleId: string, score: MatchScore) => void;
 }) {
   const [focusedRound, setFocusedRound] = useState<number | null>(null);
-  const totals = getScoreTotals(score);
+  const totals = getScoreTotals(score, roundCount);
+  const visibleTeamA = displayTeamA ?? battle.teamA;
+  const visibleTeamB = displayTeamB ?? battle.teamB;
+  const visibleTeamASide = visibleTeamA === battle.teamB ? 'teamB' : 'teamA';
+  const visibleTeamBSide = visibleTeamB === battle.teamA ? 'teamA' : 'teamB';
+  const visibleTotals = {
+    teamA: visibleTeamASide === 'teamA' ? totals.teamA : totals.teamB,
+    teamB: visibleTeamBSide === 'teamB' ? totals.teamB : totals.teamA,
+  };
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (focusedRound === null) return;
     if (e.key.toLowerCase() === 'a') {
       e.preventDefault();
-      onScoreChange(battle.id, updateRoundWinner(score, focusedRound, 'teamA'));
+      onScoreChange(battle.id, updateRoundWinner(score, focusedRound, visibleTeamASide, roundCount));
     }
     if (e.key.toLowerCase() === 'b') {
       e.preventDefault();
-      onScoreChange(battle.id, updateRoundWinner(score, focusedRound, 'teamB'));
+      onScoreChange(battle.id, updateRoundWinner(score, focusedRound, visibleTeamBSide, roundCount));
     }
   }
 
@@ -426,16 +453,16 @@ function ScoreInputs({
         className={styles.teamScoreGroup}
         onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFocusedRound(null); }}
       >
-        <span className={styles.scoreLabel}>{battle.teamA}</span>
+        <span className={styles.scoreLabel}>{visibleTeamA}</span>
         <div className={styles.scorePills}>
-          {Array.from({ length: ROUND_COUNT }, (_, roundIndex) => (
+          {Array.from({ length: roundCount }, (_, roundIndex) => (
             <button
               key={`teamA-${roundIndex}`}
               type="button"
-              className={`${styles.scorePill} ${score?.rounds?.[roundIndex] === 'teamA' ? styles.scorePillSelected : ''}`}
+              className={`${styles.scorePill} ${score?.rounds?.[roundIndex] === visibleTeamASide ? styles.scorePillSelected : ''}`}
               onFocus={() => setFocusedRound(roundIndex)}
-              onClick={() => onScoreChange(battle.id, updateRoundWinner(score, roundIndex, 'teamA'))}
-              aria-pressed={score?.rounds?.[roundIndex] === 'teamA'}
+              onClick={() => onScoreChange(battle.id, updateRoundWinner(score, roundIndex, visibleTeamASide, roundCount))}
+              aria-pressed={score?.rounds?.[roundIndex] === visibleTeamASide}
               title={`Ronda ${roundIndex + 1}`}
             >
               R{roundIndex + 1}
@@ -443,21 +470,21 @@ function ScoreInputs({
           ))}
         </div>
       </div>
-      <span className={styles.scoreDivider}>{totals.teamA}—{totals.teamB}</span>
+      <span className={styles.scoreDivider}>{visibleTotals.teamA}—{visibleTotals.teamB}</span>
       <div
         className={styles.teamScoreGroup}
         onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFocusedRound(null); }}
       >
-        <span className={styles.scoreLabel}>{battle.teamB}</span>
+        <span className={styles.scoreLabel}>{visibleTeamB}</span>
         <div className={styles.scorePills}>
-          {Array.from({ length: ROUND_COUNT }, (_, roundIndex) => (
+          {Array.from({ length: roundCount }, (_, roundIndex) => (
             <button
               key={`teamB-${roundIndex}`}
               type="button"
-              className={`${styles.scorePill} ${score?.rounds?.[roundIndex] === 'teamB' ? styles.scorePillSelected : ''}`}
+              className={`${styles.scorePill} ${score?.rounds?.[roundIndex] === visibleTeamBSide ? styles.scorePillSelected : ''}`}
               onFocus={() => setFocusedRound(roundIndex)}
-              onClick={() => onScoreChange(battle.id, updateRoundWinner(score, roundIndex, 'teamB'))}
-              aria-pressed={score?.rounds?.[roundIndex] === 'teamB'}
+              onClick={() => onScoreChange(battle.id, updateRoundWinner(score, roundIndex, visibleTeamBSide, roundCount))}
+              aria-pressed={score?.rounds?.[roundIndex] === visibleTeamBSide}
               title={`Ronda ${roundIndex + 1}`}
             >
               R{roundIndex + 1}
@@ -470,16 +497,34 @@ function ScoreInputs({
 }
 
 function buildTeamSchedules(rounds: Round[]) {
-  const scheduleMap = new Map<string, Array<{ round: number; opponent: string; battleId: string }>>();
+  const scheduleMap = new Map<string, Array<{
+    round: number;
+    opponent: string;
+    battleId: string;
+    originalTeamA: string;
+    originalTeamB: string;
+  }>>();
 
   for (const round of rounds) {
     for (const battle of round.battles) {
       const teamASchedule = scheduleMap.get(battle.teamA) ?? [];
-      teamASchedule.push({ round: round.number, opponent: battle.teamB, battleId: battle.id });
+      teamASchedule.push({
+        round: round.number,
+        opponent: battle.teamB,
+        battleId: battle.id,
+        originalTeamA: battle.teamA,
+        originalTeamB: battle.teamB,
+      });
       scheduleMap.set(battle.teamA, teamASchedule);
 
       const teamBSchedule = scheduleMap.get(battle.teamB) ?? [];
-      teamBSchedule.push({ round: round.number, opponent: battle.teamA, battleId: battle.id });
+      teamBSchedule.push({
+        round: round.number,
+        opponent: battle.teamA,
+        battleId: battle.id,
+        originalTeamA: battle.teamA,
+        originalTeamB: battle.teamB,
+      });
       scheduleMap.set(battle.teamB, teamBSchedule);
     }
   }
