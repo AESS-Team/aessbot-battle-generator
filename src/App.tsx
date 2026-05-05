@@ -8,7 +8,7 @@ import Phase2Results from './components/Phase2Results';
 import Phase3Results from './components/Phase3Results';
 import SpectatorView from './components/SpectatorView';
 import { generateBattles, type CompetitionConfig, type BattleResult } from './logic/battleGenerator';
-import { generateBracket } from './logic/bracketGenerator';
+import { generateBracket, type Bracket } from './logic/bracketGenerator';
 import { DEFAULT_TIMER_STATE, TIMER_DURATION, type TimerState } from './logic/timerUtils';
 import {
   ROUND_COUNT,
@@ -66,11 +66,27 @@ function normalizeTimerState(timerState: unknown): TimerState {
 }
 
 const _persisted = loadPersistedState();
+const hasPersistedPhase3PublicationState =
+  _persisted !== null && Object.prototype.hasOwnProperty.call(_persisted, 'phase3BracketPublished');
 
 type PhaseKey = 'phase1' | 'phase2' | 'phase3';
 type BattleScores = Record<string, MatchScore>;
 type BracketScores = Record<string, MatchScore>;
 type RepescaWinners = string[];
+
+function hasRegisteredScore(scores: Record<string, MatchScore>): boolean {
+  return Object.values(scores).some((score) => score.rounds.some((roundWinner) => roundWinner !== ''));
+}
+
+function getBracketSignature(bracket: Bracket | null): string {
+  if (!bracket) return '';
+
+  return bracket.quarterfinals
+    .flatMap((match) => [match.seedA, match.seedB])
+    .sort((a, b) => a.seed - b.seed)
+    .map((seed) => seed.name)
+    .join('\u001f');
+}
 
 export default function App() {
   const FINAL_STAGE_SIZE = 8;
@@ -88,12 +104,20 @@ export default function App() {
   const [battleScores, setBattleScores] = useState<BattleScores>(_persisted?.battleScores ?? {});
   const [bracketScores, setBracketScores] = useState<BracketScores>(_persisted?.bracketScores ?? {});
   const [repescaWinners, setRepescaWinners] = useState<RepescaWinners>(_persisted?.repescaWinners ?? []);
+  const [phase3Bracket, setPhase3Bracket] = useState<Bracket | null>(
+    hasPersistedPhase3PublicationState ? _persisted?.phase3Bracket ?? null : null
+  );
+  const [phase3BracketPublished, setPhase3BracketPublished] = useState<boolean>(_persisted?.phase3BracketPublished ?? false);
   const [timerState, setTimerState] = useState<TimerState>(_persisted?.timerState ?? DEFAULT_TIMER_STATE);
   const [configOpen, setConfigOpen] = useState(false);
   const [resetPending, setResetPending] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(loadTheme);
 
   const isSpectatorMode = new URLSearchParams(window.location.search).get('mode') === 'spectator';
+  const hasPhase1Results = hasRegisteredScore(battleScores);
+  const hasPhase2Results = repescaWinners.some(Boolean);
+  const hasPhase3Results = hasRegisteredScore(bracketScores);
+  const hasAnyRegisteredResults = hasPhase1Results || hasPhase2Results || hasPhase3Results;
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -118,12 +142,12 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        teams, config, result, hasGenerated, activePhase, battleScores, bracketScores, repescaWinners, timerState,
+        teams, config, result, hasGenerated, activePhase, battleScores, bracketScores, repescaWinners, phase3Bracket, phase3BracketPublished, timerState,
       }));
     } catch {
       // ignore quota errors
     }
-  }, [teams, config, result, hasGenerated, activePhase, battleScores, bracketScores, repescaWinners, timerState]);
+  }, [teams, config, result, hasGenerated, activePhase, battleScores, bracketScores, repescaWinners, phase3Bracket, phase3BracketPublished, timerState]);
 
   useEffect(() => {
     if (!configOpen) return;
@@ -144,7 +168,18 @@ export default function App() {
     setBattleScores({});
     setBracketScores({});
     setRepescaWinners([]);
+    setPhase3Bracket(null);
+    setPhase3BracketPublished(false);
     setTimerState(DEFAULT_TIMER_STATE);
+  }
+
+  function confirmResultOverwrite(message: string) {
+    return window.confirm(message);
+  }
+
+  function confirmIfResultsWouldBeRemoved(message: string) {
+    if (!hasAnyRegisteredResults) return true;
+    return confirmResultOverwrite(message);
   }
 
   function handleBracketScoreChange(matchId: string, score: MatchScore) {
@@ -174,21 +209,42 @@ export default function App() {
   }
 
   function handleAddTeams(names: string[]) {
+    if (!confirmIfResultsWouldBeRemoved(
+      'Afegir equips reiniciarà la competició i eliminarà els resultats registrats a qualsevol fase. Continuar?'
+    )) {
+      return false;
+    }
+
     setTeams((prev) => {
       const newNames = names.filter((n) => !prev.includes(n));
       return [...prev, ...newNames];
     });
     resetCompetitionState();
+    return true;
   }
 
   function handleRemoveTeam(name: string) {
+    if (!confirmIfResultsWouldBeRemoved(
+      `Eliminar ${name} reiniciarà la competició i eliminarà els resultats registrats a qualsevol fase. Continuar?`
+    )) {
+      return false;
+    }
+
     setTeams((prev) => prev.filter((t) => t !== name));
     resetCompetitionState();
+    return true;
   }
 
   function handleClearTeams() {
+    if (!confirmIfResultsWouldBeRemoved(
+      'Buidar els equips reiniciarà la competició i eliminarà els resultats registrats a qualsevol fase. Continuar?'
+    )) {
+      return false;
+    }
+
     setTeams([]);
     resetCompetitionState();
+    return true;
   }
 
   function handleBattleScoreChange(battleId: string, score: MatchScore) {
@@ -200,6 +256,13 @@ export default function App() {
 
   function handleSimulatePhase1Results() {
     if (!result) return;
+    if (!confirmResultOverwrite(
+      hasAnyRegisteredResults
+        ? 'Simular la Fase 1 substituirà els resultats registrats i eliminarà els resultats de repesca i eliminatòries. Continuar?'
+        : 'Vols simular automàticament tots els resultats de la Fase 1?'
+    )) {
+      return;
+    }
 
     const simulatedScores = result.battles.reduce<BattleScores>((acc, battle) => {
       acc[battle.id] = {
@@ -209,14 +272,27 @@ export default function App() {
     }, {});
 
     setBattleScores(simulatedScores);
+    setBracketScores({});
+    setRepescaWinners([]);
+    setPhase3Bracket(null);
+    setPhase3BracketPublished(false);
   }
 
   function handleRepescaWinnerChange(roundIndex: number, winner: string) {
+    if (hasPhase3Results && !confirmResultOverwrite(
+      'Canviar la repesca eliminarà els resultats registrats de les eliminatòries. Continuar?'
+    )) {
+      return;
+    }
+
     setRepescaWinners((prev) => {
       const next = [...prev];
       next[roundIndex] = winner;
       return next;
     });
+    setBracketScores({});
+    setPhase3Bracket(null);
+    setPhase3BracketPublished(false);
   }
 
   const standings = result ? buildStandings(teams, result.battles, battleScores) : [];
@@ -242,16 +318,46 @@ export default function App() {
   const finalistTeams = isRepescaRequired
     ? [...qualifiedTeams, ...filledRepescaWinners]
     : qualifiedTeams;
-  const computedBracket =
+  const bracketReady =
     allPhase1ResultsRegistered &&
     isRepescaComplete &&
     hasEnoughTeamsForQuarterfinals &&
-    finalistTeams.length === FINAL_STAGE_SIZE
-      ? generateBracket(finalistTeams)
-      : null;
+    finalistTeams.length === FINAL_STAGE_SIZE;
+  const finalistSignature = finalistTeams.join('\u001f');
+  const computedBracket = bracketReady && getBracketSignature(phase3Bracket) === finalistSignature
+    ? phase3Bracket
+    : null;
   const isPhase3Complete = computedBracket !== null && getWinnerSide(bracketScores.final) !== null;
 
+  function handleGeneratePhase3Bracket() {
+    if (!bracketReady) return;
+    if ((computedBracket || hasPhase3Results) && !confirmResultOverwrite(
+      hasPhase3Results
+        ? 'Generar un nou encreuament eliminarà els resultats registrats de les eliminatòries i el despublicarà del mode espectador. Continuar?'
+        : 'Vols generar un nou encreuament aleatori per a quarts?'
+    )) {
+      return;
+    }
+
+    setPhase3Bracket(generateBracket(finalistTeams));
+    setBracketScores({});
+    setPhase3BracketPublished(false);
+  }
+
+  function handlePublishPhase3Bracket() {
+    if (!computedBracket) return;
+    setPhase3BracketPublished(true);
+  }
+
   function handleSimulateRepesca() {
+    if (!confirmResultOverwrite(
+      hasPhase2Results || hasPhase3Results
+        ? 'Simular la repesca substituirà els classificats registrats i eliminarà els resultats de les eliminatòries. Continuar?'
+        : 'Vols simular automàticament els classificats de la repesca?'
+    )) {
+      return;
+    }
+
     const simulated: string[] = [];
     const available = [...repescaTeams];
 
@@ -262,6 +368,9 @@ export default function App() {
     }
 
     setRepescaWinners(simulated);
+    setBracketScores({});
+    setPhase3Bracket(null);
+    setPhase3BracketPublished(false);
   }
 
   const handleGenerate = useCallback(() => {
@@ -273,11 +382,19 @@ export default function App() {
       return;
     }
 
+    if (hasAnyRegisteredResults && !window.confirm(
+      'Generar batalles de nou eliminarà els resultats registrats a qualsevol fase. Continuar?'
+    )) {
+      return;
+    }
+
     const battleResult = generateBattles(teams, config);
     setResult(battleResult);
     setBattleScores({});
     setBracketScores({});
     setRepescaWinners([]);
+    setPhase3Bracket(null);
+    setPhase3BracketPublished(false);
 
     if (battleResult.rounds.length === 0) {
       setAlerts(
@@ -299,7 +416,7 @@ export default function App() {
     setHasGenerated(true);
     setActivePhase('phase1');
     setConfigOpen(false);
-  }, [teams, config]);
+  }, [teams, config, hasAnyRegisteredResults]);
 
   function handleRegenerate() {
     handleGenerate();
@@ -466,19 +583,30 @@ export default function App() {
                     </>
                   )}
 
+                  {activePhase === 'phase3' && bracketReady && !computedBracket && (
+                    <Phase3BracketGate
+                      onGenerate={handleGeneratePhase3Bracket}
+                    />
+                  )}
+
                   {activePhase === 'phase3' &&
-                    allPhase1ResultsRegistered &&
-                    isRepescaComplete &&
-                    hasEnoughTeamsForQuarterfinals &&
+                    bracketReady &&
                     computedBracket && (
-                      <Phase3Results
-                        bracket={computedBracket}
-                        finalistTeams={finalistTeams}
-                        directQualifiedCount={directQualifiedCount}
-                        repescaCount={filledRepescaWinners.length}
-                        bracketScores={bracketScores}
-                        onBracketScoreChange={handleBracketScoreChange}
-                      />
+                      <>
+                        <Phase3BracketActions
+                          isPublished={phase3BracketPublished}
+                          onRegenerate={handleGeneratePhase3Bracket}
+                          onPublish={handlePublishPhase3Bracket}
+                        />
+                        <Phase3Results
+                          bracket={computedBracket}
+                          finalistTeams={finalistTeams}
+                          directQualifiedCount={directQualifiedCount}
+                          repescaCount={filledRepescaWinners.length}
+                          bracketScores={bracketScores}
+                          onBracketScoreChange={handleBracketScoreChange}
+                        />
+                      </>
                     )}
                   </div>
                 </section>
@@ -616,6 +744,67 @@ function LockedPhaseMessage({
           🎲 {actionLabel}
         </button>
       )}
+    </div>
+  );
+}
+
+function Phase3BracketGate({
+  onGenerate,
+}: {
+  onGenerate: () => void;
+}) {
+  return (
+    <div>
+      <div className="section-tag">Fase 3</div>
+      <p style={{ color: 'var(--text-primary)', marginTop: 'var(--space-sm)', fontWeight: 600 }}>
+        Encreuaments pendents de sorteig
+      </p>
+      <p style={{ color: 'var(--text-muted)', marginTop: 'var(--space-xs)', fontSize: '0.9rem' }}>
+        Genera els quarts de final quan vulguis. El mode espectador no els veurà fins que els publiquis.
+      </p>
+      <button
+        type="button"
+        className="btn btn--primary"
+        style={{ marginTop: 'var(--space-md)' }}
+        onClick={onGenerate}
+      >
+        🎲 Generar encreuaments
+      </button>
+    </div>
+  );
+}
+
+function Phase3BracketActions({
+  isPublished,
+  onRegenerate,
+  onPublish,
+}: {
+  isPublished: boolean;
+  onRegenerate: () => void;
+  onPublish: () => void;
+}) {
+  return (
+    <div style={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 'var(--space-sm)',
+      marginBottom: 'var(--space-md)',
+      paddingBottom: 'var(--space-md)',
+      borderBottom: '1px solid var(--border-subtle)',
+    }}>
+      <span className={isPublished ? 'badge badge--secondary' : 'badge'}>
+        {isPublished ? 'Publicat al mode espectador' : 'Encara no publicat'}
+      </span>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-sm)' }}>
+        <button type="button" className="btn btn--secondary" onClick={onRegenerate}>
+          🎲 Tornar a generar
+        </button>
+        <button type="button" className="btn btn--primary" onClick={onPublish} disabled={isPublished}>
+          Publicar al mode espectador
+        </button>
+      </div>
     </div>
   );
 }

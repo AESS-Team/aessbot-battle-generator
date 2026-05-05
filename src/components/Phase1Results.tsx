@@ -383,8 +383,7 @@ export default function Phase1Results({
                   <span className={styles.standingsPos}>{index + 1}</span>
                   <span className={styles.standingsTeam}>{row.team}</span>
                   <div className={styles.standingsStats}>
-                    <span className={styles.pointsBadge}>{row.pointsFor} PF</span>
-                    <span className={styles.concededBadge}>{row.pointsAgainst} PR</span>
+                    <span className={styles.pointsBadge}>{row.pointsFor} pts</span>
                     <span className={styles.playedBadge}>{row.played} J</span>
                   </div>
                 </div>

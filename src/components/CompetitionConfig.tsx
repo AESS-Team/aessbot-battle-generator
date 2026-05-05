@@ -72,7 +72,7 @@ export default function CompetitionConfigPanel({ config, onChange, teamCount, ma
             >+</button>
           </div>
           <span className={styles.hint}>
-            Per defecte: 8 (estil Champions League)
+            Per defecte: 8
           </span>
         </div>
 

@@ -1,11 +1,9 @@
 /**
  * Bracket generator for the knockout phase.
- * Produces a seeded bracket following the Champions League model:
- *   QF1: seed1 vs seed8, QF2: seed4 vs seed5, QF3: seed2 vs seed7, QF4: seed3 vs seed6
+ * Produces a random knockout bracket:
+ *   QF1-QF4 are filled from a full random draw of the 8 finalists.
  *   SF-A: winner(QF1) vs winner(QF2),  SF-B: winner(QF3) vs winner(QF4)
  *   Final: winner(SF-A) vs winner(SF-B)
- *
- * This guarantees seeds 1 and 2 are on opposite sides of the bracket.
  */
 
 interface Seed {
@@ -28,44 +26,32 @@ interface Bracket {
 }
 
 /**
- * Generate a seeded knockout bracket from an ordered list of 8 finalists.
+ * Generate a random knockout bracket from an ordered list of 8 finalists.
  *
- * Seeding order:
- *   Position 1 → seed 1 (best), position 8 → seed 8.
+ * Seed numbers preserve the qualifying order, but they do not determine pairings.
  *
  * @param {string[]} finalistTeams - Teams ranked 1–8 for the knockout phase.
  * @returns {Bracket} Full bracket structure ready for result population.
  */
 export function generateBracket(finalistTeams: string[]): Bracket {
-  // Build seeded participants list (seeds 1–8)
   const seeds: Seed[] = finalistTeams.slice(0, 8).map((name, i) => ({ seed: i + 1, name }));
+  const drawnSeeds = shuffle(seeds);
 
-  /**
-   * Create a match object.
-   *
-   * @param id - Unique match identifier.
-   * @param seedNumA - Seed number of first team.
-   * @param seedNumB - Seed number of second team.
-   * @param label - Human-readable label (e.g. "QF1").
-   */
-  function makeMatch(id: string, seedNumA: number, seedNumB: number, label: string): Match {
+  function makeMatch(id: string, indexA: number, indexB: number, label: string): Match {
     return {
       id,
-      seedA: seeds[seedNumA - 1],
-      seedB: seeds[seedNumB - 1],
+      seedA: drawnSeeds[indexA],
+      seedB: drawnSeeds[indexB],
       winner: null,
       label,
     };
   }
 
-  // Quarterfinals: CL seeded bracket
-  //   Side A: QF1 (1v8), QF2 (4v5)  → winner meets winner in SF-A
-  //   Side B: QF3 (2v7), QF4 (3v6)  → winner meets winner in SF-B
   const quarterfinals: Match[] = [
-    makeMatch('qf1', 1, 8, 'QF 1'),
-    makeMatch('qf2', 4, 5, 'QF 2'),
-    makeMatch('qf3', 2, 7, 'QF 3'),
-    makeMatch('qf4', 3, 6, 'QF 4'),
+    makeMatch('qf1', 0, 1, 'QF 1'),
+    makeMatch('qf2', 2, 3, 'QF 2'),
+    makeMatch('qf3', 4, 5, 'QF 3'),
+    makeMatch('qf4', 6, 7, 'QF 4'),
   ];
 
   // Semifinals: placeholder winners filled in when results are added
@@ -96,6 +82,17 @@ export function generateBracket(finalistTeams: string[]): Bracket {
   };
 
   return { quarterfinals, semifinals, final };
+}
+
+function shuffle<T>(items: T[]): T[] {
+  const shuffled = [...items];
+
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  return shuffled;
 }
 
 export type { Seed, Match, Bracket };

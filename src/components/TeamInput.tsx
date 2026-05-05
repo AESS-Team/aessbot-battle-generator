@@ -20,9 +20,9 @@ function pickDemoTeams(existing: string[]): string[] {
 
 interface Props {
   teams: string[];
-  onAdd: (names: string[]) => void;
-  onRemove: (name: string) => void;
-  onClear: () => void;
+  onAdd: (names: string[]) => boolean;
+  onRemove: (name: string) => boolean;
+  onClear: () => boolean;
 }
 
 /**
@@ -39,7 +39,7 @@ export default function TeamInput({ teams, onAdd, onRemove, onClear }: Props) {
   function handleAdd() {
     const trimmed = inputValue.trim();
     if (!trimmed || teams.includes(trimmed)) return;
-    onAdd([trimmed]);
+    if (!onAdd([trimmed])) return;
     setInputValue('');
     inputRef.current?.focus();
   }
@@ -53,7 +53,7 @@ export default function TeamInput({ teams, onAdd, onRemove, onClear }: Props) {
       .split('\n')
       .map((n) => n.trim())
       .filter((n) => n && !teams.includes(n));
-    if (names.length > 0) onAdd(names);
+    if (names.length > 0 && !onAdd(names)) return;
     setBulkValue('');
     setShowBulk(false);
   }

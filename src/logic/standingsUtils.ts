@@ -1,4 +1,4 @@
-import { isScoreComplete, getScoreTotals, type MatchScore } from './scoreUtils';
+import { getWinnerSide, isScoreComplete, type MatchScore } from './scoreUtils';
 
 interface BattleLike {
   id: string;
@@ -18,33 +18,35 @@ export function buildStandings(
   battles: BattleLike[],
   scores: Record<string, MatchScore>,
 ): StandingRow[] {
-  const pf = new Map<string, number>(teams.map((t) => [t, 0]));
-  const pa = new Map<string, number>(teams.map((t) => [t, 0]));
+  const points = new Map<string, number>(teams.map((t) => [t, 0]));
   const pl = new Map<string, number>(teams.map((t) => [t, 0]));
 
   for (const battle of battles) {
     const score = scores[battle.id];
     if (!isScoreComplete(score)) continue;
-    const { teamA: teamAPoints, teamB: teamBPoints } = getScoreTotals(score);
+    const winnerSide = getWinnerSide(score);
 
     pl.set(battle.teamA, (pl.get(battle.teamA) ?? 0) + 1);
     pl.set(battle.teamB, (pl.get(battle.teamB) ?? 0) + 1);
-    pf.set(battle.teamA, (pf.get(battle.teamA) ?? 0) + teamAPoints);
-    pf.set(battle.teamB, (pf.get(battle.teamB) ?? 0) + teamBPoints);
-    pa.set(battle.teamA, (pa.get(battle.teamA) ?? 0) + teamBPoints);
-    pa.set(battle.teamB, (pa.get(battle.teamB) ?? 0) + teamAPoints);
+
+    if (winnerSide === 'teamA') {
+      points.set(battle.teamA, (points.get(battle.teamA) ?? 0) + 3);
+    }
+
+    if (winnerSide === 'teamB') {
+      points.set(battle.teamB, (points.get(battle.teamB) ?? 0) + 3);
+    }
   }
 
   return teams
     .map((team) => ({
       team,
-      pointsFor: pf.get(team) ?? 0,
-      pointsAgainst: pa.get(team) ?? 0,
+      pointsFor: points.get(team) ?? 0,
+      pointsAgainst: 0,
       played: pl.get(team) ?? 0,
     }))
     .sort((a, b) => {
       if (b.pointsFor !== a.pointsFor) return b.pointsFor - a.pointsFor;
-      if (a.pointsAgainst !== b.pointsAgainst) return a.pointsAgainst - b.pointsAgainst;
       if (b.played !== a.played) return b.played - a.played;
       return a.team.localeCompare(b.team);
     });
@@ -64,8 +66,7 @@ export function getDirectQualifiedCount(
   if (
     !boundary ||
     !next ||
-    boundary.pointsFor !== next.pointsFor ||
-    boundary.pointsAgainst !== next.pointsAgainst
+    boundary.pointsFor !== next.pointsFor
   ) {
     return requestedDirectQualifiedCount;
   }
@@ -73,6 +74,6 @@ export function getDirectQualifiedCount(
   // Tie crosses the boundary: exclude all tied teams from direct qualification.
   // Find the first position in the sorted standings where this tie group begins.
   return standings.findIndex(
-    (row) => row.pointsFor === boundary.pointsFor && row.pointsAgainst === boundary.pointsAgainst,
+    (row) => row.pointsFor === boundary.pointsFor,
   );
 }

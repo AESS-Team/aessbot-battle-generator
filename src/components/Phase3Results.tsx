@@ -96,7 +96,7 @@ export default function Phase3Results({
           <div className="section-tag">Fase 3</div>
           <h2 className={styles.title}>Eliminatòries</h2>
           <p className={styles.subtitle}>
-            Quadre seedat estil Champions League · Seeds 1 i 2 en costats oposats
+            Quadre d&apos;eliminatòria generat per sorteig aleatori
           </p>
         </div>
         <div className={styles.headerRight}>
@@ -128,7 +128,7 @@ export default function Phase3Results({
       <div className={styles.summaryRow}>
         <div className={styles.summaryCard}>
           <span className={styles.summaryValue}>{finalistTeams[0]}</span>
-          <span className={styles.summaryLabel}>1r classificat (seed #1)</span>
+          <span className={styles.summaryLabel}>1r classificat</span>
         </div>
         <div className={styles.summaryCard}>
           <span className={styles.summaryValue}>{directQualifiedCount}</span>
@@ -155,7 +155,7 @@ export default function Phase3Results({
             style={{ fontSize: '0.75rem', padding: '0.3rem 0.7rem' }}
             onClick={handleCopySeeds}
           >
-            {copiedSeeds ? '✓ Copiat!' : '📋 Copiar seeds'}
+            {copiedSeeds ? '✓ Copiat!' : '📋 Copiar classificació'}
           </button>
         </div>
         <div className={styles.seedLegend}>

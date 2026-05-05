@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { computeSecondsLeft, TIMER_DURATION, type TimerState } from '../logic/timerUtils';
-import { generateBracket } from '../logic/bracketGenerator';
+import type { Bracket } from '../logic/bracketGenerator';
 import {
   getScoreTotals,
   getWinner,
@@ -17,6 +17,9 @@ import {
 } from '../logic/bracketSvgConstants';
 import aessLogo from '../assets/aess-logo.svg';
 import aessLogoWhite from '../assets/aess-logo-white.svg';
+import logoTelecos from '../assets/logo-telecos.svg';
+import logoVento from '../assets/logo-vento.svg';
+import logoUpc from '../assets/logo-upc.svg';
 import styles from './SpectatorView.module.css';
 
 const STORAGE_KEY = 'aessbot-v1';
@@ -31,6 +34,8 @@ interface PersistedState {
   battleScores: Record<string, MatchScore>;
   bracketScores: Record<string, MatchScore>;
   repescaWinners: string[];
+  phase3Bracket?: Bracket | null;
+  phase3BracketPublished?: boolean;
   activePhase: string;
   hasGenerated: boolean;
   config: { qualifiedCount: number; simultaneousBattles: number };
@@ -50,8 +55,17 @@ function loadState(): PersistedState | null {
   } catch { return null; }
 }
 
+function getBracketSignature(bracket: Bracket): string {
+  return bracket.quarterfinals
+    .flatMap((match) => [match.seedA, match.seedB])
+    .sort((a, b) => a.seed - b.seed)
+    .map((seed) => seed.name)
+    .join('\u001f');
+}
+
 function resolveChampion(state: PersistedState | null): string | null {
   if (!state?.hasGenerated || !state.result) return null;
+  if (!state.phase3BracketPublished) return null;
 
   const { teams, result, battleScores, bracketScores, repescaWinners, config } = state;
   const standings = buildStandings(teams, result.battles, battleScores);
@@ -69,7 +83,9 @@ function resolveChampion(state: PersistedState | null): string | null {
     : rankedTeams.slice(0, directQualifiedCount);
   if (rankedTeams.length < FINAL_STAGE_SIZE || finalistTeams.length !== FINAL_STAGE_SIZE) return null;
 
-  const bracket = generateBracket(finalistTeams);
+  const bracket = state.phase3Bracket;
+  if (!bracket || getBracketSignature(bracket) !== finalistTeams.join('\u001f')) return null;
+
   const qf = bracket.quarterfinals;
   const qf1W = getWinner(qf[0].seedA.name, qf[0].seedB.name, bracketScores.qf1);
   const qf2W = getWinner(qf[1].seedA.name, qf[1].seedB.name, bracketScores.qf2);
@@ -191,6 +207,15 @@ export default function SpectatorView({
             <span>Repesca</span>
             <span>Finals</span>
           </div>
+
+          <div className={styles.waitingSponsors} aria-label="Sponsors AESSBot">
+            <div className={styles.waitingSponsorsLabel}>powered by</div>
+            <div className={styles.waitingSponsorLogos}>
+              <img src={logoTelecos} alt="Telecos" />
+              <img className={styles.waitingSponsorLogoPrimary} src={logoVento} alt="Vento" />
+              <img src={logoUpc} alt="UPC" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -243,8 +268,11 @@ export default function SpectatorView({
     allPhase1ResultsRegistered &&
     isRepescaComplete &&
     hasEnoughTeamsForQuarterfinals &&
-    finalistTeams.length === FINAL_STAGE_SIZE
-      ? generateBracket(finalistTeams)
+    finalistTeams.length === FINAL_STAGE_SIZE &&
+    state.phase3BracketPublished &&
+    state.phase3Bracket &&
+    getBracketSignature(state.phase3Bracket) === finalistTeams.join('\u001f')
+      ? state.phase3Bracket
       : null;
 
   let champion: string | null = null;
@@ -434,8 +462,8 @@ export default function SpectatorView({
                     >
                       <span className={styles.standPos}>{i + 1}</span>
                       <span className={styles.standTeam}>{row.team}</span>
-                      <span className={styles.standPf}>{row.pointsFor}</span>
-                      <span className={styles.standPa}>{row.pointsAgainst}</span>
+                      <span className={styles.standPf}>{row.pointsFor}pts</span>
+                      <span className={styles.standPa}>{row.played}J</span>
                       <span className={styles.standBadge}>
                         {isRepescaQualified ? <span className={styles.badgeRepescaQualified}>R+</span> : isDirect ? <span className={styles.badgeDirect}>Q</span> : <span className={styles.badgeRepesca}>R</span>}
                       </span>
@@ -528,6 +556,8 @@ export default function SpectatorView({
                   ? 'Pendent de completar la repesca'
                   : !hasEnoughTeamsForQuarterfinals
                   ? 'No hi ha prou equips per generar el quadre'
+                  : !state.phase3BracketPublished
+                  ? 'Pendent de publicació dels encreuaments'
                   : 'Pendent de resultats'}
               </div>
             )}
