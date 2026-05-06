@@ -89,7 +89,7 @@ function resolveChampion(state: PersistedState | null): string | null {
   const rankedTeams = standings.map((row) => row.team);
   const filledRepescaWinners = repescaWinners.filter(Boolean);
   const requestedDirectQualifiedCount = Math.min(config.qualifiedCount ?? 6, FINAL_STAGE_SIZE, standings.length);
-  const directQualifiedCount = getDirectQualifiedCount(standings, requestedDirectQualifiedCount);
+  const directQualifiedCount = getDirectQualifiedCount(standings, requestedDirectQualifiedCount, FINAL_STAGE_SIZE);
   const repescaSlots = Math.max(FINAL_STAGE_SIZE - directQualifiedCount, 0);
   const finalistTeams = repescaSlots > 0
     ? [...rankedTeams.slice(0, directQualifiedCount), ...filledRepescaWinners]
@@ -259,7 +259,7 @@ export default function SpectatorView({
   const filledRepescaWinners = repescaWinners.filter(Boolean);
   const requestedDirectQualifiedCount = Math.min(config.qualifiedCount ?? 6, FINAL_STAGE_SIZE, standings.length);
   const directQualifiedCount = allPhase1ResultsRegistered
-    ? getDirectQualifiedCount(standings, requestedDirectQualifiedCount)
+    ? getDirectQualifiedCount(standings, requestedDirectQualifiedCount, FINAL_STAGE_SIZE)
     : requestedDirectQualifiedCount;
   const repescaSlots = Math.max(FINAL_STAGE_SIZE - directQualifiedCount, 0);
   const qualifiedTeams = rankedTeams.slice(0, directQualifiedCount);

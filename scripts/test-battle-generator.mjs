@@ -103,16 +103,28 @@ assert(
   'Expected legacy 3-win best-of-3 scores to be trimmed to 2 wins'
 );
 
-const tiedBoundaryStandings = Array.from({ length: 15 }, (_, index) => ({
+const tiedBoundaryStandings = [15, 12, 12, 9, 9, 9, 9, 9, 6, 6, 6, 3, 0, 0].map((pointsFor, index) => ({
   team: `Team ${index + 1}`,
-  pointsFor: index < 6 ? 24 - index * 3 : 6,
+  pointsFor,
+  pointsAgainst: 0,
+  played: 5,
+}));
+
+assert(
+  getDirectQualifiedCount(tiedBoundaryStandings, 7, 8) === 3,
+  'Expected only teams above the 8th-place points to qualify directly'
+);
+
+const uniqueBoundaryStandings = [24, 21, 18, 15, 12, 9, 6, 3, 0].map((pointsFor, index) => ({
+  team: `Unique ${index + 1}`,
+  pointsFor,
   pointsAgainst: 0,
   played: 8,
 }));
 
 assert(
-  getDirectQualifiedCount(tiedBoundaryStandings, 7) === 7,
-  'Expected 7 direct qualifiers even when teams around the cut are tied'
+  getDirectQualifiedCount(uniqueBoundaryStandings, 7, 8) === 7,
+  'Expected configured direct qualifiers when the 8th-place cut is not tied'
 );
 
 const publishedBracketState = createGeneratedPhase3BracketState({ quarterfinals: [] });

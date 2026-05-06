@@ -56,6 +56,14 @@ export function buildStandings(
 export function getDirectQualifiedCount(
   standings: StandingRow[],
   requestedDirectQualifiedCount: number,
+  finalStageSize = 8,
 ): number {
-  return Math.max(0, Math.min(Math.floor(requestedDirectQualifiedCount), standings.length));
+  const requestedCount = Math.max(0, Math.min(Math.floor(requestedDirectQualifiedCount), standings.length));
+  const cutoffIndex = Math.min(Math.max(Math.floor(finalStageSize), 1), standings.length) - 1;
+  const cutoffPoints = standings[cutoffIndex]?.pointsFor;
+
+  if (cutoffPoints === undefined) return requestedCount;
+
+  const untiedAboveCutoffCount = standings.filter((row) => row.pointsFor > cutoffPoints).length;
+  return Math.min(requestedCount, untiedAboveCutoffCount);
 }

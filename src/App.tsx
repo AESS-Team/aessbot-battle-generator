@@ -328,9 +328,9 @@ export default function App() {
     result !== null && completedBattleCount === result.battles.length && result.battles.length > 0;
   const rankedTeams = allPhase1ResultsRegistered ? standings.map((row) => row.team) : [];
   const requestedDirectQualifiedCount = Math.min(config.qualifiedCount, FINAL_STAGE_SIZE, standings.length);
-  const phase1PreviewQualifiedCount = getDirectQualifiedCount(standings, requestedDirectQualifiedCount);
+  const phase1PreviewQualifiedCount = getDirectQualifiedCount(standings, requestedDirectQualifiedCount, FINAL_STAGE_SIZE);
   const directQualifiedCount = allPhase1ResultsRegistered
-    ? getDirectQualifiedCount(standings, requestedDirectQualifiedCount)
+    ? getDirectQualifiedCount(standings, requestedDirectQualifiedCount, FINAL_STAGE_SIZE)
     : requestedDirectQualifiedCount;
   const previewRepescaSlots = Math.max(FINAL_STAGE_SIZE - phase1PreviewQualifiedCount, 0);
   const repescaSlots = Math.max(FINAL_STAGE_SIZE - directQualifiedCount, 0);
