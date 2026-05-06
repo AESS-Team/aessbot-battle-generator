@@ -54,8 +54,8 @@ function loadPersistedState() {
     return {
       ...parsed,
       config,
-      battleScores: normalizeScoreMap(parsed.battleScores, roundCount),
-      bracketScores: normalizeScoreMap(parsed.bracketScores, roundCount),
+      battleScores: normalizeScoreMap(parsed.battleScores, roundCount, config.roundsToWin),
+      bracketScores: normalizeScoreMap(parsed.bracketScores, roundCount, config.roundsToWin),
       timerState: normalizeTimerState(parsed.timerState),
     };
   } catch {
@@ -75,7 +75,7 @@ function normalizeCompetitionConfig(config: unknown): CompetitionConfig {
       ? Math.max(1, Math.min(Number(candidate.qualifiedCount), 8))
       : DEFAULT_COMPETITION_CONFIG.qualifiedCount,
     simultaneousBattles: Number.isFinite(Number(candidate.simultaneousBattles))
-      ? Math.max(1, Math.min(Number(candidate.simultaneousBattles), 8))
+      ? Math.max(1, Math.min(Number(candidate.simultaneousBattles), 1))
       : DEFAULT_COMPETITION_CONFIG.simultaneousBattles,
     roundsToWin: normalizeRoundsToWin(candidate.roundsToWin),
   };
@@ -291,11 +291,8 @@ export default function App() {
       return;
     }
 
-    const roundCount = getRoundCount(config.roundsToWin);
     const simulatedScores = result.battles.reduce<BattleScores>((acc, battle) => {
-      acc[battle.id] = {
-        rounds: Array.from({ length: roundCount }, () => (Math.random() > 0.5 ? 'teamA' : 'teamB')),
-      };
+      acc[battle.id] = createRandomCompleteScore(config.roundsToWin);
       return acc;
     }, {});
 
@@ -745,6 +742,27 @@ export default function App() {
       )}
     </div>
   );
+}
+
+function createRandomCompleteScore(roundsToWin: number): MatchScore {
+  const roundCount = getRoundCount(roundsToWin);
+  const rounds: MatchScore['rounds'] = [];
+  let teamAWins = 0;
+  let teamBWins = 0;
+
+  for (let index = 0; index < roundCount; index++) {
+    if (teamAWins >= roundsToWin || teamBWins >= roundsToWin) {
+      rounds.push('');
+      continue;
+    }
+
+    const winner = Math.random() > 0.5 ? 'teamA' : 'teamB';
+    rounds.push(winner);
+    if (winner === 'teamA') teamAWins += 1;
+    if (winner === 'teamB') teamBWins += 1;
+  }
+
+  return { rounds };
 }
 
 function LockedPhaseMessage({

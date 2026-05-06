@@ -28,16 +28,44 @@ export function normalizeRoundWinner(value: unknown): RoundWinner {
   return value === 'teamA' || value === 'teamB' ? value : '';
 }
 
-export function normalizeScore(score: unknown, roundCount = ROUND_COUNT): MatchScore | undefined {
+export function sanitizeScore(
+  score: MatchScore | undefined,
+  roundCount = ROUND_COUNT,
+  roundsToWin = DEFAULT_ROUNDS_TO_WIN,
+): MatchScore {
+  const rounds: RoundWinner[] = [];
+  let teamAWins = 0;
+  let teamBWins = 0;
+
+  for (let index = 0; index < roundCount; index++) {
+    const roundWinner = normalizeRoundWinner(score?.rounds?.[index]);
+    if (teamAWins >= roundsToWin || teamBWins >= roundsToWin) {
+      rounds.push('');
+      continue;
+    }
+
+    rounds.push(roundWinner);
+    if (roundWinner === 'teamA') teamAWins += 1;
+    if (roundWinner === 'teamB') teamBWins += 1;
+  }
+
+  return { rounds };
+}
+
+export function normalizeScore(
+  score: unknown,
+  roundCount = ROUND_COUNT,
+  roundsToWin = DEFAULT_ROUNDS_TO_WIN,
+): MatchScore | undefined {
   if (!score || typeof score !== 'object') return undefined;
 
   const candidate = score as { rounds?: unknown; teamA?: unknown; teamB?: unknown };
 
   if (Array.isArray(candidate.rounds)) {
     const rounds = candidate.rounds as unknown[];
-    return {
+    return sanitizeScore({
       rounds: Array.from({ length: roundCount }, (_, index) => normalizeRoundWinner(rounds[index])),
-    };
+    }, roundCount, roundsToWin);
   }
 
   const teamA = Number(candidate.teamA);
@@ -53,14 +81,18 @@ export function normalizeScore(score: unknown, roundCount = ROUND_COUNT): MatchS
 
   while (legacyRounds.length < roundCount) legacyRounds.push('');
 
-  return { rounds: legacyRounds };
+  return sanitizeScore({ rounds: legacyRounds }, roundCount, roundsToWin);
 }
 
-export function normalizeScoreMap(scores: unknown, roundCount = ROUND_COUNT): ScoreMap {
+export function normalizeScoreMap(
+  scores: unknown,
+  roundCount = ROUND_COUNT,
+  roundsToWin = DEFAULT_ROUNDS_TO_WIN,
+): ScoreMap {
   if (!scores || typeof scores !== 'object') return {};
 
   const entries = Object.entries(scores as Record<string, unknown>)
-    .map(([id, score]) => [id, normalizeScore(score, roundCount)] as const)
+    .map(([id, score]) => [id, normalizeScore(score, roundCount, roundsToWin)] as const)
     .filter((entry): entry is readonly [string, MatchScore] => entry[1] !== undefined);
 
   return Object.fromEntries(entries);
@@ -108,12 +140,18 @@ export function updateRoundWinner(
   roundIndex: number,
   side: 'teamA' | 'teamB',
   roundCount = ROUND_COUNT,
+  roundsToWin = DEFAULT_ROUNDS_TO_WIN,
 ): MatchScore {
-  const rounds = [...(previousScore?.rounds ?? [])];
+  const sanitizedPrevious = sanitizeScore(previousScore, roundCount, roundsToWin);
+  const rounds = [...sanitizedPrevious.rounds];
   while (rounds.length < Math.max(roundCount, roundIndex + 1)) {
     rounds.push('');
   }
   const currentValue = rounds[roundIndex] ?? '';
+  if (currentValue === '' && isScoreComplete(sanitizedPrevious, roundsToWin)) {
+    return sanitizedPrevious;
+  }
+
   rounds[roundIndex] = currentValue === side ? '' : side;
-  return { rounds: rounds.slice(0, roundCount) };
+  return sanitizeScore({ rounds: rounds.slice(0, roundCount) }, roundCount, roundsToWin);
 }

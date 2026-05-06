@@ -7,6 +7,7 @@ import {
   getRoundCount,
   getScoreTotals,
   getWinner,
+  isScoreComplete,
   updateRoundWinner,
   type MatchScore,
 } from '../logic/scoreUtils';
@@ -198,6 +199,7 @@ export default function Phase3Results({
                 seedB={m.seedB}
                 score={bracketScores[m.id]}
                 roundCount={roundCount}
+                roundsToWin={roundsToWin}
                 onScoreChange={onBracketScoreChange}
               />
             ))}
@@ -212,6 +214,7 @@ export default function Phase3Results({
               teamA={sf1A} teamB={sf1B}
               score={bracketScores['sf1']}
               roundCount={roundCount}
+              roundsToWin={roundsToWin}
               onScoreChange={onBracketScoreChange}
               locked={sf1Locked}
             />
@@ -220,6 +223,7 @@ export default function Phase3Results({
               teamA={sf2A} teamB={sf2B}
               score={bracketScores['sf2']}
               roundCount={roundCount}
+              roundsToWin={roundsToWin}
               onScoreChange={onBracketScoreChange}
               locked={sf2Locked}
             />
@@ -234,6 +238,7 @@ export default function Phase3Results({
               teamA={finA} teamB={finB}
               score={bracketScores['final']}
               roundCount={roundCount}
+              roundsToWin={roundsToWin}
               onScoreChange={onBracketScoreChange}
               locked={finalLocked}
               isFinal
@@ -310,13 +315,14 @@ function SvgMatchCard({ x, y, match, isFinal = false }: { x: number; y: number; 
 // ── Score row ────────────────────────────────────────────────
 
 function BracketMatchRow({
-  matchId, label, teamA, teamB, seedA, seedB, score, roundCount, onScoreChange, locked = false, isFinal = false,
+  matchId, label, teamA, teamB, seedA, seedB, score, roundCount, roundsToWin, onScoreChange, locked = false, isFinal = false,
 }: {
   matchId: string; label: string;
   teamA: string; teamB: string;
   seedA?: number; seedB?: number;
   score?: MatchScore;
   roundCount: number;
+  roundsToWin: number;
   onScoreChange: (id: string, score: MatchScore) => void;
   locked?: boolean;
   isFinal?: boolean;
@@ -325,17 +331,37 @@ function BracketMatchRow({
   const totals = getScoreTotals(score, roundCount);
   const aWon = totals.teamA > totals.teamB;
   const bWon = totals.teamB > totals.teamA;
+  const scoreComplete = isScoreComplete(score, roundsToWin);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (focusedRound === null || locked) return;
     if (e.key.toLowerCase() === 'a') {
       e.preventDefault();
-      onScoreChange(matchId, updateRoundWinner(score, focusedRound, 'teamA', roundCount));
+      onScoreChange(matchId, updateRoundWinner(score, focusedRound, 'teamA', roundCount, roundsToWin));
     }
     if (e.key.toLowerCase() === 'b') {
       e.preventDefault();
-      onScoreChange(matchId, updateRoundWinner(score, focusedRound, 'teamB', roundCount));
+      onScoreChange(matchId, updateRoundWinner(score, focusedRound, 'teamB', roundCount, roundsToWin));
     }
+  }
+
+  function renderScorePill(roundIndex: number, side: 'teamA' | 'teamB', keyPrefix: string) {
+    const roundWinner = score?.rounds?.[roundIndex] ?? '';
+    const disabled = scoreComplete && roundWinner === '';
+
+    return (
+      <button
+        key={`${keyPrefix}-${roundIndex}`}
+        type="button"
+        className={`${styles.pill} ${roundWinner === side ? styles.pillSelected : ''}`}
+        disabled={disabled}
+        onFocus={() => setFocusedRound(roundIndex)}
+        onClick={() => onScoreChange(matchId, updateRoundWinner(score, roundIndex, side, roundCount, roundsToWin))}
+        aria-pressed={roundWinner === side}
+      >
+        R{roundIndex + 1}
+      </button>
+    );
   }
 
   return (
@@ -352,14 +378,7 @@ function BracketMatchRow({
           <span className={styles.matchRowName}>{teamA}</span>
           {!locked && (
             <div className={styles.matchRowPills}>
-              {Array.from({ length: roundCount }, (_, roundIndex) => (
-                <button key={`teamA-${roundIndex}`} type="button"
-                  className={`${styles.pill} ${score?.rounds?.[roundIndex] === 'teamA' ? styles.pillSelected : ''}`}
-                  onFocus={() => setFocusedRound(roundIndex)}
-                  onClick={() => onScoreChange(matchId, updateRoundWinner(score, roundIndex, 'teamA', roundCount))}
-                  aria-pressed={score?.rounds?.[roundIndex] === 'teamA'}
-                >R{roundIndex + 1}</button>
-              ))}
+              {Array.from({ length: roundCount }, (_, roundIndex) => renderScorePill(roundIndex, 'teamA', 'teamA'))}
             </div>
           )}
         </div>
@@ -375,14 +394,7 @@ function BracketMatchRow({
           <span className={styles.matchRowName}>{teamB}</span>
           {!locked && (
             <div className={styles.matchRowPills}>
-              {Array.from({ length: roundCount }, (_, roundIndex) => (
-                <button key={`teamB-${roundIndex}`} type="button"
-                  className={`${styles.pill} ${score?.rounds?.[roundIndex] === 'teamB' ? styles.pillSelected : ''}`}
-                  onFocus={() => setFocusedRound(roundIndex)}
-                  onClick={() => onScoreChange(matchId, updateRoundWinner(score, roundIndex, 'teamB', roundCount))}
-                  aria-pressed={score?.rounds?.[roundIndex] === 'teamB'}
-                >R{roundIndex + 1}</button>
-              ))}
+              {Array.from({ length: roundCount }, (_, roundIndex) => renderScorePill(roundIndex, 'teamB', 'teamB'))}
             </div>
           )}
         </div>

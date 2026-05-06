@@ -14,7 +14,7 @@ interface Props {
  * Allows setting fights-per-team and number of direct qualifiers.
  * Shows an automatic recommendation when fightCount exceeds maxUnique opponents.
  */
-export default function CompetitionConfigPanel({ config, onChange, teamCount, maxSimultaneous = 8 }: Props) {
+export default function CompetitionConfigPanel({ config, onChange, teamCount, maxSimultaneous = 1 }: Props) {
   const FINAL_STAGE_SIZE = 8;
   const maxUnique = teamCount > 1 ? teamCount - 1 : 0;
   const needsAdjust = teamCount >= 4 && maxUnique < config.fightCount;
@@ -115,7 +115,7 @@ export default function CompetitionConfigPanel({ config, onChange, teamCount, ma
         {/* Simultaneous battles */}
         <div className={styles.field}>
           <label className={styles.label} htmlFor="cfg-simultaneous">
-            Combats simultànis (Fase 1)
+            Combats alhora (Fase 1)
           </label>
           <div className={styles.stepper}>
             <button
@@ -141,7 +141,7 @@ export default function CompetitionConfigPanel({ config, onChange, teamCount, ma
             >+</button>
           </div>
           <span className={styles.hint}>
-            Fase 2 i 3: sempre 1 combat alhora
+            Hi ha 1 ring: totes les jornades són d'1 combat
           </span>
         </div>
 

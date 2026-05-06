@@ -47,10 +47,10 @@ function assert(condition, message) {
 function assertOddTeamGeneration(result, teams) {
   assert(result.rounds.length > 0, `Expected rounds for 15 teams. Warnings: ${result.warnings.join(' | ')}`);
   assert(result.battles.length === 60, `Expected 60 battles for 15 teams playing 8 each, got ${result.battles.length}`);
+  assert(result.rounds.length === result.battles.length, `Expected one combat per jornada, got ${result.rounds.length} rounds for ${result.battles.length} battles`);
 
   for (const round of result.rounds) {
-    assert(round.battles.length > 0, `Round ${round.number} should not be empty`);
-    assert(round.battles.length <= 7, `Expected at most 7 battles in round ${round.number}, got ${round.battles.length}`);
+    assert(round.battles.length === 1, `Expected exactly 1 battle in round ${round.number}, got ${round.battles.length}`);
 
     const teamsInRound = new Set();
     for (const battle of round.battles) {
@@ -75,6 +75,7 @@ function assertOddTeamGeneration(result, teams) {
 }
 
 const { generateBattles } = await loadTs('src/logic/battleGenerator.ts');
+const { updateRoundWinner, getScoreTotals, sanitizeScore } = await loadTs('src/logic/scoreUtils.ts');
 const { getDirectQualifiedCount } = await loadTs('src/logic/standingsUtils.ts');
 const { createGeneratedPhase3BracketState } = await loadTs('src/logic/phase3Publication.ts');
 const { buildPhase1BattlesWorkbook } = await loadTs('src/logic/xlsxUtils.ts');
@@ -82,6 +83,25 @@ const teams = Array.from({ length: 15 }, (_, index) => `Team ${index + 1}`);
 const result = generateBattles(teams, { fightCount: 8 });
 
 assertOddTeamGeneration(result, teams);
+
+const bestOfThreeLockedScore = [
+  [0, 'teamA'],
+  [1, 'teamA'],
+  [2, 'teamA'],
+].reduce((score, [roundIndex, side]) => (
+  updateRoundWinner(score, roundIndex, side, 3, 2)
+), undefined);
+
+assert(
+  getScoreTotals(bestOfThreeLockedScore, 3).teamA === 2,
+  'Expected best-of-3 scores to stop once a team reaches 2 wins'
+);
+
+const repairedLegacyScore = sanitizeScore({ rounds: ['teamB', 'teamB', 'teamB'] }, 3, 2);
+assert(
+  getScoreTotals(repairedLegacyScore, 3).teamB === 2,
+  'Expected legacy 3-win best-of-3 scores to be trimmed to 2 wins'
+);
 
 const tiedBoundaryStandings = Array.from({ length: 15 }, (_, index) => ({
   team: `Team ${index + 1}`,

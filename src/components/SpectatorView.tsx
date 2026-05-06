@@ -61,8 +61,8 @@ function loadState(): PersistedState | null {
         ...parsed.config,
         roundsToWin,
       },
-      battleScores: normalizeScoreMap(parsed.battleScores, roundCount),
-      bracketScores: normalizeScoreMap(parsed.bracketScores, roundCount),
+      battleScores: normalizeScoreMap(parsed.battleScores, roundCount, roundsToWin),
+      bracketScores: normalizeScoreMap(parsed.bracketScores, roundCount, roundsToWin),
     };
   } catch { return null; }
 }

@@ -3,7 +3,7 @@
  *
  * The phase is built as a partial round-robin:
  * - every team plays `fightCount` battles when a fair schedule is possible
- * - every team plays at most once per jornada
+ * - every jornada is one scheduled combat
  * - no repeated battles
  */
 
@@ -16,7 +16,7 @@ export interface Battle {
   repeated: boolean;
 }
 
-/** A round (jornada): a group of battles where each team plays at most once. */
+/** A round (jornada): one scheduled combat. */
 export interface Round {
   number: number;
   battles: Battle[];
@@ -157,7 +157,7 @@ function selectFairOddTeamPairings(
 
 /**
  * Generate league phase battles grouped by jornades.
- * Each team plays at most once per jornada, with no repeated pairings.
+ * Each jornada contains one combat because the competition has one ring.
  *
  * @param teams - List of participating team names.
  * @param config - Competition configuration.
@@ -215,14 +215,15 @@ export function generateBattles(
   const roundRobinRounds = n % 2 === 0
     ? allRoundRobinRounds.slice(0, effectiveFightCount)
     : selectFairOddTeamPairings(shuffledTeams, allRoundRobinRounds, effectiveFightCount);
-  const rounds: Round[] = roundRobinRounds.map((pairings, roundIndex) => ({
+  const generatedBattles = roundRobinRounds.flatMap((pairings) => pairings);
+  const rounds: Round[] = generatedBattles.map(([teamA, teamB], roundIndex) => ({
     number: roundIndex + 1,
-    battles: pairings.map(([teamA, teamB], battleIndex) => ({
-      id: `battle-${roundIndex + 1}-${battleIndex + 1}`,
+    battles: [{
+      id: `battle-${roundIndex + 1}`,
       teamA,
       teamB,
       repeated: false,
-    })),
+    }],
   }));
 
   const battles = rounds.flatMap((round) => round.battles);

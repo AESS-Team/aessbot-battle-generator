@@ -312,6 +312,7 @@ export default function Phase1Results({
                         <ScoreInputs
                           battle={battle}
                           roundCount={roundCount}
+                          roundsToWin={roundsToWin}
                           score={battleScores[battle.id]}
                           onScoreChange={onBattleScoreChange}
                         />
@@ -365,6 +366,7 @@ export default function Phase1Results({
                         displayTeamA={teamSchedule.team}
                         displayTeamB={matchup.opponent}
                         roundCount={roundCount}
+                        roundsToWin={roundsToWin}
                         score={battleScores[matchup.battleId]}
                         onScoreChange={onBattleScoreChange}
                       />
@@ -415,6 +417,7 @@ function ScoreInputs({
   displayTeamA,
   displayTeamB,
   roundCount,
+  roundsToWin,
   score,
   onScoreChange,
 }: {
@@ -422,6 +425,7 @@ function ScoreInputs({
   displayTeamA?: string;
   displayTeamB?: string;
   roundCount: number;
+  roundsToWin: number;
   score?: MatchScore;
   onScoreChange: (battleId: string, score: MatchScore) => void;
 }) {
@@ -435,17 +439,38 @@ function ScoreInputs({
     teamA: visibleTeamASide === 'teamA' ? totals.teamA : totals.teamB,
     teamB: visibleTeamBSide === 'teamB' ? totals.teamB : totals.teamA,
   };
+  const scoreComplete = isScoreComplete(score, roundsToWin);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (focusedRound === null) return;
     if (e.key.toLowerCase() === 'a') {
       e.preventDefault();
-      onScoreChange(battle.id, updateRoundWinner(score, focusedRound, visibleTeamASide, roundCount));
+      onScoreChange(battle.id, updateRoundWinner(score, focusedRound, visibleTeamASide, roundCount, roundsToWin));
     }
     if (e.key.toLowerCase() === 'b') {
       e.preventDefault();
-      onScoreChange(battle.id, updateRoundWinner(score, focusedRound, visibleTeamBSide, roundCount));
+      onScoreChange(battle.id, updateRoundWinner(score, focusedRound, visibleTeamBSide, roundCount, roundsToWin));
     }
+  }
+
+  function renderScorePill(roundIndex: number, side: 'teamA' | 'teamB', keyPrefix: string) {
+    const roundWinner = score?.rounds?.[roundIndex] ?? '';
+    const disabled = scoreComplete && roundWinner === '';
+
+    return (
+      <button
+        key={`${keyPrefix}-${roundIndex}`}
+        type="button"
+        className={`${styles.scorePill} ${roundWinner === side ? styles.scorePillSelected : ''}`}
+        disabled={disabled}
+        onFocus={() => setFocusedRound(roundIndex)}
+        onClick={() => onScoreChange(battle.id, updateRoundWinner(score, roundIndex, side, roundCount, roundsToWin))}
+        aria-pressed={roundWinner === side}
+        title={`Ronda ${roundIndex + 1}`}
+      >
+        R{roundIndex + 1}
+      </button>
+    );
   }
 
   return (
@@ -456,19 +481,7 @@ function ScoreInputs({
       >
         <span className={styles.scoreLabel}>{visibleTeamA}</span>
         <div className={styles.scorePills}>
-          {Array.from({ length: roundCount }, (_, roundIndex) => (
-            <button
-              key={`teamA-${roundIndex}`}
-              type="button"
-              className={`${styles.scorePill} ${score?.rounds?.[roundIndex] === visibleTeamASide ? styles.scorePillSelected : ''}`}
-              onFocus={() => setFocusedRound(roundIndex)}
-              onClick={() => onScoreChange(battle.id, updateRoundWinner(score, roundIndex, visibleTeamASide, roundCount))}
-              aria-pressed={score?.rounds?.[roundIndex] === visibleTeamASide}
-              title={`Ronda ${roundIndex + 1}`}
-            >
-              R{roundIndex + 1}
-            </button>
-          ))}
+          {Array.from({ length: roundCount }, (_, roundIndex) => renderScorePill(roundIndex, visibleTeamASide, 'teamA'))}
         </div>
       </div>
       <span className={styles.scoreDivider}>{visibleTotals.teamA}—{visibleTotals.teamB}</span>
@@ -478,19 +491,7 @@ function ScoreInputs({
       >
         <span className={styles.scoreLabel}>{visibleTeamB}</span>
         <div className={styles.scorePills}>
-          {Array.from({ length: roundCount }, (_, roundIndex) => (
-            <button
-              key={`teamB-${roundIndex}`}
-              type="button"
-              className={`${styles.scorePill} ${score?.rounds?.[roundIndex] === visibleTeamBSide ? styles.scorePillSelected : ''}`}
-              onFocus={() => setFocusedRound(roundIndex)}
-              onClick={() => onScoreChange(battle.id, updateRoundWinner(score, roundIndex, visibleTeamBSide, roundCount))}
-              aria-pressed={score?.rounds?.[roundIndex] === visibleTeamBSide}
-              title={`Ronda ${roundIndex + 1}`}
-            >
-              R{roundIndex + 1}
-            </button>
-          ))}
+          {Array.from({ length: roundCount }, (_, roundIndex) => renderScorePill(roundIndex, visibleTeamBSide, 'teamB'))}
         </div>
       </div>
     </div>
