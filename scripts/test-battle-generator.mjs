@@ -76,6 +76,7 @@ function assertOddTeamGeneration(result, teams) {
 
 const { generateBattles } = await loadTs('src/logic/battleGenerator.ts');
 const { getDirectQualifiedCount } = await loadTs('src/logic/standingsUtils.ts');
+const { createGeneratedPhase3BracketState } = await loadTs('src/logic/phase3Publication.ts');
 const teams = Array.from({ length: 15 }, (_, index) => `Team ${index + 1}`);
 const result = generateBattles(teams, { fightCount: 8 });
 
@@ -91,6 +92,12 @@ const tiedBoundaryStandings = Array.from({ length: 15 }, (_, index) => ({
 assert(
   getDirectQualifiedCount(tiedBoundaryStandings, 7) === 7,
   'Expected 7 direct qualifiers even when teams around the cut are tied'
+);
+
+const publishedBracketState = createGeneratedPhase3BracketState({ quarterfinals: [] });
+assert(
+  publishedBracketState.phase3BracketPublished === true,
+  'Expected generated phase 3 brackets to be visible in spectator mode immediately'
 );
 
 console.log('battleGenerator odd-team tests passed');

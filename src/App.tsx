@@ -9,6 +9,7 @@ import Phase3Results from './components/Phase3Results';
 import SpectatorView from './components/SpectatorView';
 import { generateBattles, type CompetitionConfig, type BattleResult } from './logic/battleGenerator';
 import { generateBracket, type Bracket } from './logic/bracketGenerator';
+import { createGeneratedPhase3BracketState } from './logic/phase3Publication';
 import { DEFAULT_TIMER_STATE, TIMER_DURATION, type TimerState } from './logic/timerUtils';
 import {
   createEmptyScore,
@@ -360,15 +361,16 @@ export default function App() {
     if (!bracketReady) return;
     if ((computedBracket || hasPhase3Results) && !confirmResultOverwrite(
       hasPhase3Results
-        ? 'Generar un nou encreuament eliminarà els resultats registrats de les eliminatòries i el despublicarà del mode espectador. Continuar?'
+        ? 'Generar un nou encreuament eliminarà els resultats registrats de les eliminatòries i el publicarà al mode espectador. Continuar?'
         : 'Vols generar un nou encreuament aleatori per a quarts?'
     )) {
       return;
     }
 
-    setPhase3Bracket(generateBracket(finalistTeams));
+    const nextBracketState = createGeneratedPhase3BracketState(generateBracket(finalistTeams));
+    setPhase3Bracket(nextBracketState.phase3Bracket);
     setBracketScores({});
-    setPhase3BracketPublished(false);
+    setPhase3BracketPublished(nextBracketState.phase3BracketPublished);
   }
 
   function handlePublishPhase3Bracket() {
@@ -791,7 +793,7 @@ function Phase3BracketGate({
         Encreuaments pendents de sorteig
       </p>
       <p style={{ color: 'var(--text-muted)', marginTop: 'var(--space-xs)', fontSize: '0.9rem' }}>
-        Genera els quarts de final quan vulguis. El mode espectador no els veurà fins que els publiquis.
+        Genera els quarts de final quan vulguis. El mode espectador els veurà automàticament.
       </p>
       <button
         type="button"
@@ -832,9 +834,11 @@ function Phase3BracketActions({
         <button type="button" className="btn btn--secondary" onClick={onRegenerate}>
           🎲 Tornar a generar
         </button>
-        <button type="button" className="btn btn--primary" onClick={onPublish} disabled={isPublished}>
-          Publicar al mode espectador
-        </button>
+        {!isPublished && (
+          <button type="button" className="btn btn--primary" onClick={onPublish}>
+            Publicar al mode espectador
+          </button>
+        )}
       </div>
     </div>
   );
