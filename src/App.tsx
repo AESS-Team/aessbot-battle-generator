@@ -220,13 +220,16 @@ export default function App() {
       if (winnerChanged) {
         if (matchId === 'qf1' || matchId === 'qf2') {
           next.sf1 = createEmptyScore(roundCount);
+          next.thirdPlace = createEmptyScore(roundCount);
           next.final = createEmptyScore(roundCount);
         }
         if (matchId === 'qf3' || matchId === 'qf4') {
           next.sf2 = createEmptyScore(roundCount);
+          next.thirdPlace = createEmptyScore(roundCount);
           next.final = createEmptyScore(roundCount);
         }
         if (matchId === 'sf1' || matchId === 'sf2') {
+          next.thirdPlace = createEmptyScore(roundCount);
           next.final = createEmptyScore(roundCount);
         }
       }
@@ -352,7 +355,9 @@ export default function App() {
   const computedBracket = bracketReady && getBracketSignature(phase3Bracket) === finalistSignature
     ? phase3Bracket
     : null;
-  const isPhase3Complete = computedBracket !== null && getWinnerSide(bracketScores.final, config.roundsToWin) !== null;
+  const isPhase3Complete = computedBracket !== null
+    && getWinnerSide(bracketScores.thirdPlace, config.roundsToWin) !== null
+    && getWinnerSide(bracketScores.final, config.roundsToWin) !== null;
 
   function handleGeneratePhase3Bracket() {
     if (!bracketReady) return;
@@ -634,6 +639,8 @@ export default function App() {
                           repescaCount={filledRepescaWinners.length}
                           bracketScores={bracketScores}
                           roundsToWin={config.roundsToWin}
+                          timerState={timerState}
+                          onTimerChange={setTimerState}
                           onBracketScoreChange={handleBracketScoreChange}
                         />
                       </>

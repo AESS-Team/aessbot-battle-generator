@@ -3,6 +3,7 @@
  * Produces a random knockout bracket:
  *   QF1-QF4 are filled from a full random draw of the 8 finalists.
  *   SF-A: winner(QF1) vs winner(QF2),  SF-B: winner(QF3) vs winner(QF4)
+ *   Third place: loser(SF-A) vs loser(SF-B)
  *   Final: winner(SF-A) vs winner(SF-B)
  */
 
@@ -22,6 +23,7 @@ interface Match {
 interface Bracket {
   quarterfinals: Match[];
   semifinals: Match[];
+  thirdPlace: Match;
   final: Match;
 }
 
@@ -72,7 +74,14 @@ export function generateBracket(finalistTeams: string[]): Bracket {
     },
   ];
 
-  // Final
+  const thirdPlace: Match = {
+    id: 'thirdPlace',
+    seedA: { seed: 0, name: 'Perdedor SF-A' },
+    seedB: { seed: 0, name: 'Perdedor SF-B' },
+    winner: null,
+    label: '3r / 4t lloc',
+  };
+
   const final: Match = {
     id: 'final',
     seedA: { seed: 0, name: 'Guanyador SF-A' },
@@ -81,7 +90,7 @@ export function generateBracket(finalistTeams: string[]): Bracket {
     label: 'Final',
   };
 
-  return { quarterfinals, semifinals, final };
+  return { quarterfinals, semifinals, thirdPlace, final };
 }
 
 function shuffle<T>(items: T[]): T[] {

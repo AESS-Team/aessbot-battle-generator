@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { computeSecondsLeft, TIMER_DURATION, type TimerState } from '../logic/timerUtils';
 import type { Bracket } from '../logic/bracketGenerator';
 import {
+  getLoser,
   getScoreTotals,
   getRoundCount,
   getWinner,
@@ -14,7 +15,7 @@ import { buildStandings, getDirectQualifiedCount } from '../logic/standingsUtils
 import { buildPhase2Standings } from '../logic/phase2Standings';
 import {
   CW, CH, QF_LX, SF_LX, FIN_X, SF_RX, QF_RX,
-  QF1_Y, QF2_Y, QF1_CY, QF2_CY, SF_CY, SF_Y, SVG_W, SVG_H, JUNC_L, JUNC_R,
+  QF1_Y, QF2_Y, QF1_CY, QF2_CY, SF_CY, SF_Y, THIRD_Y, SVG_W, SVG_H, JUNC_L, JUNC_R,
   type ResolvedMatch, type ResolvedBracket,
 } from '../logic/bracketSvgConstants';
 import aessLogo from '../assets/aess-logo.svg';
@@ -106,8 +107,11 @@ function resolveChampion(state: PersistedState | null): string | null {
   const qf4W = getWinner(qf[3].seedA.name, qf[3].seedB.name, bracketScores.qf4, roundsToWin);
   const sf1W = qf1W && qf2W ? getWinner(qf1W, qf2W, bracketScores.sf1, roundsToWin) : null;
   const sf2W = qf3W && qf4W ? getWinner(qf3W, qf4W, bracketScores.sf2, roundsToWin) : null;
+  const thirdPlaceComplete = isScoreComplete(bracketScores.thirdPlace, roundsToWin);
 
-  return sf1W && sf2W ? getWinner(sf1W, sf2W, bracketScores.final, roundsToWin) : null;
+  return sf1W && sf2W && thirdPlaceComplete
+    ? getWinner(sf1W, sf2W, bracketScores.final, roundsToWin)
+    : null;
 }
 
 
@@ -307,7 +311,12 @@ export default function SpectatorView({
     const qf4W = getWinner(qf4A, qf4B, bracketScores['qf4'], roundsToWin);
     const sf1W = qf1W && qf2W ? getWinner(qf1W, qf2W, bracketScores['sf1'], roundsToWin) : null;
     const sf2W = qf3W && qf4W ? getWinner(qf3W, qf4W, bracketScores['sf2'], roundsToWin) : null;
-    champion = sf1W && sf2W ? getWinner(sf1W, sf2W, bracketScores['final'], roundsToWin) : null;
+    const sf1L = qf1W && qf2W ? getLoser(qf1W, qf2W, bracketScores['sf1'], roundsToWin) : null;
+    const sf2L = qf3W && qf4W ? getLoser(qf3W, qf4W, bracketScores['sf2'], roundsToWin) : null;
+    const thirdPlaceComplete = isScoreComplete(bracketScores.thirdPlace, roundsToWin);
+    champion = sf1W && sf2W && thirdPlaceComplete
+      ? getWinner(sf1W, sf2W, bracketScores['final'], roundsToWin)
+      : null;
 
     currentBracketMatchId = [
       { id: 'qf1', ready: true },
@@ -316,7 +325,8 @@ export default function SpectatorView({
       { id: 'qf4', ready: true },
       { id: 'sf1', ready: Boolean(qf1W && qf2W) },
       { id: 'sf2', ready: Boolean(qf3W && qf4W) },
-      { id: 'final', ready: Boolean(sf1W && sf2W) },
+      { id: 'thirdPlace', ready: Boolean(sf1L && sf2L) },
+      { id: 'final', ready: Boolean(sf1W && sf2W && thirdPlaceComplete) },
     ].find((match) => match.ready && !isScoreComplete(bracketScores[match.id], roundsToWin))?.id ?? null;
 
     // Resolved bracket with winner names for the SVG display
@@ -326,6 +336,15 @@ export default function SpectatorView({
     const sf2B = qf4W ?? 'Guanyador QF 4';
     const finA = sf1W ?? 'Guanyador SF-A';
     const finB = sf2W ?? 'Guanyador SF-B';
+    const thirdA = sf1L ?? 'Perdedor SF-A';
+    const thirdB = sf2L ?? 'Perdedor SF-B';
+    const thirdPlaceTemplate = computedBracket.thirdPlace ?? {
+      id: 'thirdPlace',
+      seedA: { seed: 0, name: 'Perdedor SF-A' },
+      seedB: { seed: 0, name: 'Perdedor SF-B' },
+      winner: null,
+      label: '3r / 4t lloc',
+    };
     resolvedBracket = {
       quarterfinals: computedBracket.quarterfinals.map((match) => ({
         ...match,
@@ -335,12 +354,14 @@ export default function SpectatorView({
         { ...computedBracket.semifinals[0], seedA: { seed: 0, name: sf1A }, seedB: { seed: 0, name: sf1B }, score: getScoreTotals(bracketScores.sf1, roundCount) },
         { ...computedBracket.semifinals[1], seedA: { seed: 0, name: sf2A }, seedB: { seed: 0, name: sf2B }, score: getScoreTotals(bracketScores.sf2, roundCount) },
       ],
+      thirdPlace: { ...thirdPlaceTemplate, seedA: { seed: 0, name: thirdA }, seedB: { seed: 0, name: thirdB }, score: getScoreTotals(bracketScores.thirdPlace, roundCount) },
       final: { ...computedBracket.final, seedA: { seed: 0, name: finA }, seedB: { seed: 0, name: finB }, score: getScoreTotals(bracketScores.final, roundCount) },
     };
     currentBracketMatch = currentBracketMatchId
       ? [
         ...resolvedBracket.quarterfinals,
         ...resolvedBracket.semifinals,
+        resolvedBracket.thirdPlace,
         resolvedBracket.final,
       ].find((match) => match.id === currentBracketMatchId) ?? null
       : null;
@@ -609,6 +630,7 @@ function SpectatorBracketSVG({ bracket, currentMatchId }: { bracket: ResolvedBra
       <SpectatorSvgCard x={QF_LX}  y={QF2_Y} match={bracket.quarterfinals[1]} isCurrent={currentMatchId === 'qf2'} />
       <SpectatorSvgCard x={SF_LX}  y={SF_Y}  match={bracket.semifinals[0]} isCurrent={currentMatchId === 'sf1'} />
       <SpectatorSvgCard x={FIN_X}  y={SF_Y}  match={bracket.final} isFinal isCurrent={currentMatchId === 'final'} />
+      <SpectatorSvgCard x={FIN_X}  y={THIRD_Y} match={bracket.thirdPlace} isThirdPlace isCurrent={currentMatchId === 'thirdPlace'} />
       <SpectatorSvgCard x={SF_RX}  y={SF_Y}  match={bracket.semifinals[1]} isCurrent={currentMatchId === 'sf2'} />
       <SpectatorSvgCard x={QF_RX}  y={QF1_Y} match={bracket.quarterfinals[2]} isCurrent={currentMatchId === 'qf3'} />
       <SpectatorSvgCard x={QF_RX}  y={QF2_Y} match={bracket.quarterfinals[3]} isCurrent={currentMatchId === 'qf4'} />
@@ -617,9 +639,9 @@ function SpectatorBracketSVG({ bracket, currentMatchId }: { bracket: ResolvedBra
 }
 
 function SpectatorSvgCard({
-  x, y, match, isFinal = false, isCurrent = false,
+  x, y, match, isFinal = false, isThirdPlace = false, isCurrent = false,
 }: {
-  x: number; y: number; match: ResolvedMatch; isFinal?: boolean; isCurrent?: boolean;
+  x: number; y: number; match: ResolvedMatch; isFinal?: boolean; isThirdPlace?: boolean; isCurrent?: boolean;
 }) {
   const seedAResolved = !match.seedA.name.startsWith('Guanyador');
   const seedBResolved = !match.seedB.name.startsWith('Guanyador');
@@ -633,8 +655,8 @@ function SpectatorSvgCard({
         width: '100%', height: '100%', boxSizing: 'border-box',
         background: isCurrent
           ? 'linear-gradient(135deg, rgba(232,133,74,0.18), rgba(74,158,237,0.08))'
-          : isFinal ? 'rgba(232,133,74,0.07)' : 'var(--bracket-card-bg)',
-        border: `1px solid ${isCurrent ? 'rgba(240,192,64,0.85)' : isFinal ? 'rgba(232,133,74,0.4)' : 'var(--bracket-card-border)'}`,
+          : isFinal ? 'rgba(232,133,74,0.07)' : isThirdPlace ? 'rgba(74,158,237,0.06)' : 'var(--bracket-card-bg)',
+        border: `1px solid ${isCurrent ? 'rgba(240,192,64,0.85)' : isFinal ? 'rgba(232,133,74,0.4)' : isThirdPlace ? 'rgba(74,158,237,0.34)' : 'var(--bracket-card-border)'}`,
         borderStyle: isPlaceholder ? 'dashed' : 'solid',
         boxShadow: isCurrent ? '0 0 0 2px rgba(240,192,64,0.16), 0 0 28px rgba(232,133,74,0.32)' : 'none',
         borderRadius: '8px', padding: '8px 10px',

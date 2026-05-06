@@ -57,6 +57,7 @@ export function formatBracketAsText(bracket: Bracket): string {
   const allMatches = [
     ...bracket.quarterfinals,
     ...bracket.semifinals,
+    ...(bracket.thirdPlace ? [bracket.thirdPlace] : []),
     bracket.final,
   ];
   for (const match of allMatches) {

@@ -135,6 +135,12 @@ export function getWinner(teamA: string, teamB: string, score?: MatchScore, roun
   return winnerSide === 'teamA' ? teamA : teamB;
 }
 
+export function getLoser(teamA: string, teamB: string, score?: MatchScore, roundsToWin = DEFAULT_ROUNDS_TO_WIN): string | null {
+  const winnerSide = getWinnerSide(score, roundsToWin);
+  if (!winnerSide) return null;
+  return winnerSide === 'teamA' ? teamB : teamA;
+}
+
 export function updateRoundWinner(
   previousScore: MatchScore | undefined,
   roundIndex: number,

@@ -75,7 +75,8 @@ function assertOddTeamGeneration(result, teams) {
 }
 
 const { generateBattles } = await loadTs('src/logic/battleGenerator.ts');
-const { updateRoundWinner, getScoreTotals, sanitizeScore } = await loadTs('src/logic/scoreUtils.ts');
+const { generateBracket } = await loadTs('src/logic/bracketGenerator.ts');
+const { updateRoundWinner, getScoreTotals, sanitizeScore, getLoser } = await loadTs('src/logic/scoreUtils.ts');
 const { getDirectQualifiedCount } = await loadTs('src/logic/standingsUtils.ts');
 const { createGeneratedPhase3BracketState } = await loadTs('src/logic/phase3Publication.ts');
 const { buildPhase1BattlesWorkbook } = await loadTs('src/logic/xlsxUtils.ts');
@@ -83,6 +84,16 @@ const teams = Array.from({ length: 15 }, (_, index) => `Team ${index + 1}`);
 const result = generateBattles(teams, { fightCount: 8 });
 
 assertOddTeamGeneration(result, teams);
+
+const bracket = generateBracket(teams.slice(0, 8));
+assert(
+  bracket.thirdPlace?.id === 'thirdPlace',
+  'Expected generated brackets to include a third-place match'
+);
+assert(
+  bracket.thirdPlace?.label === '3r / 4t lloc',
+  'Expected third-place match to have a clear label'
+);
 
 const bestOfThreeLockedScore = [
   [0, 'teamA'],
@@ -101,6 +112,11 @@ const repairedLegacyScore = sanitizeScore({ rounds: ['teamB', 'teamB', 'teamB'] 
 assert(
   getScoreTotals(repairedLegacyScore, 3).teamB === 2,
   'Expected legacy 3-win best-of-3 scores to be trimmed to 2 wins'
+);
+
+assert(
+  getLoser('Semifinal A', 'Semifinal B', bestOfThreeLockedScore, 2) === 'Semifinal B',
+  'Expected score utilities to resolve the loser for third-place matches'
 );
 
 const tiedBoundaryStandings = [15, 12, 12, 9, 9, 9, 9, 9, 6, 6, 6, 3, 0, 0].map((pointsFor, index) => ({

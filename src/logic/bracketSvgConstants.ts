@@ -9,6 +9,7 @@ export interface ResolvedMatch {
 export interface ResolvedBracket {
   quarterfinals: ResolvedMatch[];
   semifinals: ResolvedMatch[];
+  thirdPlace: ResolvedMatch;
   final: ResolvedMatch;
 }
 
@@ -30,9 +31,10 @@ export const QF1_CY = QF1_Y + CH / 2;
 export const QF2_CY = QF2_Y + CH / 2;
 export const SF_CY = (QF1_CY + QF2_CY) / 2;
 export const SF_Y = SF_CY - CH / 2;
+export const THIRD_Y = QF2_Y;
 
 export const SVG_W = QF_RX + CW + PAD;
-export const SVG_H = QF2_Y + CH + 20;
+export const SVG_H = Math.max(QF2_Y + CH, THIRD_Y + CH) + 20;
 
 export const JUNC_L = QF_LX + CW + COL_GAP / 2;
 export const JUNC_R = QF_RX - COL_GAP / 2;

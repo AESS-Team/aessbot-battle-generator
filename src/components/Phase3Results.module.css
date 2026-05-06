@@ -395,6 +395,11 @@
   background: rgba(232, 133, 74, 0.06);
 }
 
+.svgCardThirdPlace {
+  border-color: rgba(74, 158, 237, 0.32);
+  background: rgba(74, 158, 237, 0.05);
+}
+
 .svgCardHeader {
   display: flex;
   align-items: center;

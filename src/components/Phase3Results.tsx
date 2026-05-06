@@ -3,7 +3,10 @@ import styles from './Phase3Results.module.css';
 import { copyToClipboard, formatBracketAsText } from '../logic/exportUtils';
 import { calcBattleDuration, formatDuration } from '../logic/battleGenerator';
 import { useState } from 'react';
+import BattleTimer from './BattleTimer';
+import type { TimerState } from '../logic/timerUtils';
 import {
+  getLoser,
   getRoundCount,
   getScoreTotals,
   getWinner,
@@ -13,7 +16,7 @@ import {
 } from '../logic/scoreUtils';
 import {
   CW, CH, QF_LX, SF_LX, FIN_X, SF_RX, QF_RX,
-  QF1_Y, QF2_Y, QF1_CY, QF2_CY, SF_CY, SF_Y, SVG_W, SVG_H, JUNC_L, JUNC_R,
+  QF1_Y, QF2_Y, QF1_CY, QF2_CY, SF_CY, SF_Y, THIRD_Y, SVG_W, SVG_H, JUNC_L, JUNC_R,
   type ResolvedMatch, type ResolvedBracket,
 } from '../logic/bracketSvgConstants';
 
@@ -24,20 +27,29 @@ interface Props {
   repescaCount: number;
   bracketScores: BracketScores;
   roundsToWin: number;
+  timerState: TimerState;
+  onTimerChange: (state: TimerState) => void;
   onBracketScoreChange: (matchId: string, score: MatchScore) => void;
 }
 
 type BracketScores = Record<string, MatchScore>;
 
 export default function Phase3Results({
-  bracket, finalistTeams, directQualifiedCount, repescaCount, bracketScores, roundsToWin, onBracketScoreChange,
+  bracket, finalistTeams, directQualifiedCount, repescaCount, bracketScores, roundsToWin, timerState, onTimerChange, onBracketScoreChange,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [copiedSeeds, setCopiedSeeds] = useState(false);
 
-  const TOTAL_BRACKET_BATTLES = 7;
+  const TOTAL_BRACKET_BATTLES = 8;
   const roundCount = getRoundCount(roundsToWin);
   const estimatedMinutes = TOTAL_BRACKET_BATTLES * calcBattleDuration(roundsToWin);
+  const thirdPlaceTemplate = bracket.thirdPlace ?? {
+    id: 'thirdPlace',
+    seedA: { seed: 0, name: 'Perdedor SF-A' },
+    seedB: { seed: 0, name: 'Perdedor SF-B' },
+    winner: null,
+    label: '3r / 4t lloc',
+  };
 
   // Resolve progressive bracket state
   const qf = bracket.quarterfinals;
@@ -60,10 +72,16 @@ export default function Phase3Results({
 
   const sf1W = sf1Locked ? null : getWinner(sf1A, sf1B, bracketScores['sf1'], roundsToWin);
   const sf2W = sf2Locked ? null : getWinner(sf2A, sf2B, bracketScores['sf2'], roundsToWin);
+  const sf1L = sf1Locked ? null : getLoser(sf1A, sf1B, bracketScores['sf1'], roundsToWin);
+  const sf2L = sf2Locked ? null : getLoser(sf2A, sf2B, bracketScores['sf2'], roundsToWin);
 
   const finA = sf1W ?? 'Guanyador SF-A';
   const finB = sf2W ?? 'Guanyador SF-B';
-  const finalLocked = !sf1W || !sf2W;
+  const thirdA = sf1L ?? 'Perdedor SF-A';
+  const thirdB = sf2L ?? 'Perdedor SF-B';
+  const thirdPlaceLocked = !sf1L || !sf2L;
+  const thirdPlaceComplete = isScoreComplete(bracketScores.thirdPlace, roundsToWin);
+  const finalLocked = !sf1W || !sf2W || !thirdPlaceComplete;
 
   const champion = finalLocked ? null : getWinner(finA, finB, bracketScores['final'], roundsToWin);
 
@@ -89,6 +107,7 @@ export default function Phase3Results({
       { ...bracket.semifinals[0], seedA: { seed: 0, name: sf1A }, seedB: { seed: 0, name: sf1B }, score: getScoreTotals(bracketScores.sf1, roundCount) },
       { ...bracket.semifinals[1], seedA: { seed: 0, name: sf2A }, seedB: { seed: 0, name: sf2B }, score: getScoreTotals(bracketScores.sf2, roundCount) },
     ],
+    thirdPlace: { ...thirdPlaceTemplate, seedA: { seed: 0, name: thirdA }, seedB: { seed: 0, name: thirdB }, score: getScoreTotals(bracketScores.thirdPlace, roundCount) },
     final: { ...bracket.final, seedA: { seed: 0, name: finA }, seedB: { seed: 0, name: finB }, score: getScoreTotals(bracketScores.final, roundCount) },
   };
 
@@ -103,6 +122,7 @@ export default function Phase3Results({
           </p>
         </div>
         <div className={styles.headerRight}>
+          <BattleTimer timerState={timerState} onTimerChange={onTimerChange} />
           <div className={styles.timeCard}>
             <span className={styles.timeIcon}>⏱</span>
             <div>
@@ -231,6 +251,21 @@ export default function Phase3Results({
         </div>
 
         <div className={styles.scoresGroup}>
+          <div className={styles.scoresGroupLabel}>3r i 4t lloc</div>
+          <div className={styles.scoresGroupMatches}>
+            <BracketMatchRow
+              matchId="thirdPlace" label="3r / 4t"
+              teamA={thirdA} teamB={thirdB}
+              score={bracketScores['thirdPlace']}
+              roundCount={roundCount}
+              roundsToWin={roundsToWin}
+              onScoreChange={onBracketScoreChange}
+              locked={thirdPlaceLocked}
+            />
+          </div>
+        </div>
+
+        <div className={styles.scoresGroup}>
           <div className={styles.scoresGroupLabel}>Final</div>
           <div className={styles.scoresGroupMatches}>
             <BracketMatchRow
@@ -277,6 +312,7 @@ function BracketSVG({ bracket }: { bracket: ResolvedBracket }) {
       <SvgMatchCard x={QF_LX} y={QF2_Y} match={bracket.quarterfinals[1]} />
       <SvgMatchCard x={SF_LX} y={SF_Y} match={bracket.semifinals[0]} />
       <SvgMatchCard x={FIN_X} y={SF_Y} match={bracket.final} isFinal />
+      <SvgMatchCard x={FIN_X} y={THIRD_Y} match={bracket.thirdPlace} isThirdPlace />
       <SvgMatchCard x={SF_RX} y={SF_Y} match={bracket.semifinals[1]} />
       <SvgMatchCard x={QF_RX} y={QF1_Y} match={bracket.quarterfinals[2]} />
       <SvgMatchCard x={QF_RX} y={QF2_Y} match={bracket.quarterfinals[3]} />
@@ -284,7 +320,7 @@ function BracketSVG({ bracket }: { bracket: ResolvedBracket }) {
   );
 }
 
-function SvgMatchCard({ x, y, match, isFinal = false }: { x: number; y: number; match: ResolvedMatch; isFinal?: boolean }) {
+function SvgMatchCard({ x, y, match, isFinal = false, isThirdPlace = false }: { x: number; y: number; match: ResolvedMatch; isFinal?: boolean; isThirdPlace?: boolean }) {
   const seedAResolved = !match.seedA.name.startsWith('Guanyador');
   const seedBResolved = !match.seedB.name.startsWith('Guanyador');
   const isPlaceholder = !seedAResolved || !seedBResolved;
@@ -293,7 +329,7 @@ function SvgMatchCard({ x, y, match, isFinal = false }: { x: number; y: number; 
   const seedBWon = hasScore && (match.score?.teamB ?? 0) > (match.score?.teamA ?? 0);
   return (
     <foreignObject x={x} y={y} width={CW} height={CH}>
-      <div className={[styles.svgCard, isPlaceholder ? styles.svgCardPlaceholder : '', isFinal ? styles.svgCardFinal : ''].filter(Boolean).join(' ')}>
+      <div className={[styles.svgCard, isPlaceholder ? styles.svgCardPlaceholder : '', isFinal ? styles.svgCardFinal : '', isThirdPlace ? styles.svgCardThirdPlace : ''].filter(Boolean).join(' ')}>
         <div className={styles.svgCardHeader}>
           <span className={styles.svgCardLabel}>{match.label}</span>
           {hasScore && <span className={styles.svgCardScore}>{match.score?.teamA ?? 0}-{match.score?.teamB ?? 0}</span>}
