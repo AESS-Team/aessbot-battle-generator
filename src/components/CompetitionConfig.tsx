@@ -108,7 +108,7 @@ export default function CompetitionConfigPanel({ config, onChange, teamCount, ma
             >+</button>
           </div>
           <span className={styles.hint}>
-            La repesca omple fins al 8è lloc
+            {config.qualifiedCount >= FINAL_STAGE_SIZE ? 'Els 8 passen directes a quarts' : 'La repesca omple fins al 8è lloc'}
           </span>
         </div>
 

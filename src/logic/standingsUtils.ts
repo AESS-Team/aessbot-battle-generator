@@ -57,24 +57,5 @@ export function getDirectQualifiedCount(
   standings: StandingRow[],
   requestedDirectQualifiedCount: number,
 ): number {
-  if (requestedDirectQualifiedCount <= 0 || standings.length <= requestedDirectQualifiedCount) {
-    return requestedDirectQualifiedCount;
-  }
-
-  const boundary = standings[requestedDirectQualifiedCount - 1];
-  const next = standings[requestedDirectQualifiedCount];
-
-  if (
-    !boundary ||
-    !next ||
-    boundary.pointsFor !== next.pointsFor
-  ) {
-    return requestedDirectQualifiedCount;
-  }
-
-  // Tie crosses the boundary: exclude all tied teams from direct qualification.
-  // Find the first position in the sorted standings where this tie group begins.
-  return standings.findIndex(
-    (row) => row.pointsFor === boundary.pointsFor,
-  );
+  return Math.max(0, Math.min(Math.floor(requestedDirectQualifiedCount), standings.length));
 }

@@ -30,7 +30,7 @@ type ThemeMode = 'dark' | 'light';
 
 const DEFAULT_COMPETITION_CONFIG: CompetitionConfig = {
   fightCount: 8,
-  qualifiedCount: 7,
+  qualifiedCount: 8,
   simultaneousBattles: 1,
   roundsToWin: 2,
 };
@@ -456,6 +456,7 @@ export default function App() {
   function handleResetConfirm() {
     setResetPending(false);
     setTeams([]);
+    setConfig(DEFAULT_COMPETITION_CONFIG);
     resetCompetitionState();
   }
 
@@ -467,7 +468,7 @@ export default function App() {
     setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark');
   }
 
-  const canGenerate = teams.length >= 4 && teams.length % 2 === 0;
+  const canGenerate = teams.length >= 4;
 
   if (isSpectatorMode) {
     return <SpectatorView theme={theme} />;
@@ -734,7 +735,7 @@ export default function App() {
               <p className={styles.validationHint}>
                 {teams.length < 4
                   ? `Afegeix almenys ${4 - teams.length} equip${4 - teams.length > 1 ? 's' : ''} més`
-                  : 'Cal un nombre parell d’equips perquè cada jornada tingui tots els equips jugant un cop'}
+                  : 'Ja pots generar la competició'}
               </p>
             )}
           </div>

@@ -2,9 +2,8 @@
  * Battle generation logic for the league phase.
  *
  * The phase is built as a partial round-robin:
- * - exactly `fightCount` jornades
- * - every team plays exactly once per jornada
- * - every jornada has the same number of battles
+ * - every team plays `fightCount` battles when a fair schedule is possible
+ * - every team plays at most once per jornada
  * - no repeated battles
  */
 
@@ -40,7 +39,7 @@ export interface BattleResult {
 export interface CompetitionConfig {
   /** Number of battles per team in the league phase (default: 8). */
   fightCount: number;
-  /** Number of teams that qualify directly to quarterfinals (default: 7). */
+  /** Number of teams that qualify directly to quarterfinals (default: 8). */
   qualifiedCount: number;
   /** Number of simultaneous battles during Phase 1 (default: 1). */
   simultaneousBattles: number;
@@ -98,8 +97,12 @@ function shuffle<T>(arr: T[]): T[] {
   return arr;
 }
 
+const BYE = '__AESSBOT_BYE__';
+
 function buildRoundRobinRounds(teams: string[]): Array<Array<[string, string]>> {
-  const rotation = [...shuffle([...teams])];
+  const rotation = [...teams];
+  if (rotation.length % 2 !== 0) rotation.push(BYE);
+
   const rounds: Array<Array<[string, string]>> = [];
   const teamCount = rotation.length;
   const half = teamCount / 2;
@@ -110,6 +113,7 @@ function buildRoundRobinRounds(teams: string[]): Array<Array<[string, string]>> 
     for (let i = 0; i < half; i++) {
       const teamA = rotation[i];
       const teamB = rotation[teamCount - 1 - i];
+      if (teamA === BYE || teamB === BYE) continue;
       pairings.push(Math.random() > 0.5 ? [teamA, teamB] : [teamB, teamA]);
     }
 
@@ -128,9 +132,32 @@ function buildBattleKey(teamA: string, teamB: string): string {
   return [teamA, teamB].sort().join('|||');
 }
 
+function getCyclicDistance(a: number, b: number, count: number): number {
+  const distance = Math.abs(a - b);
+  return Math.min(distance, count - distance);
+}
+
+function selectFairOddTeamPairings(
+  teams: string[],
+  allRounds: Array<Array<[string, string]>>,
+  fightCount: number
+): Array<Array<[string, string]>> {
+  const indexByTeam = new Map(teams.map((team, index) => [team, index]));
+  const maxDistance = fightCount / 2;
+
+  return allRounds
+    .map((round) => round.filter(([teamA, teamB]) => {
+      const indexA = indexByTeam.get(teamA);
+      const indexB = indexByTeam.get(teamB);
+      if (indexA === undefined || indexB === undefined) return false;
+      return getCyclicDistance(indexA, indexB, teams.length) <= maxDistance;
+    }))
+    .filter((round) => round.length > 0);
+}
+
 /**
- * Generate league phase battles as exact jornades.
- * Each team plays exactly `fightCount` battles, one per jornada, with no repeats.
+ * Generate league phase battles grouped by jornades.
+ * Each team plays at most once per jornada, with no repeated pairings.
  *
  * @param teams - List of participating team names.
  * @param config - Competition configuration.
@@ -154,28 +181,40 @@ export function generateBattles(
     };
   }
 
-  if (n % 2 !== 0) {
+  const maxUnique = n - 1;
+  let effectiveFightCount = Math.min(fightCount, maxUnique);
+
+  if (n % 2 !== 0 && effectiveFightCount % 2 !== 0) {
+    effectiveFightCount = Math.max(0, effectiveFightCount - 1);
+    warnings.push(
+      `Amb ${n} equips, cal un nombre parell de combats per equip per repartir descansos de manera justa. ` +
+      `La fase 1 s'ha ajustat a ${effectiveFightCount} combats per equip.`
+    );
+  }
+
+  if (effectiveFightCount <= 0) {
     return {
       battles: [],
       rounds: [],
       teamStats: [],
       warnings: [
-        `Amb ${n} equips no es poden crear jornades perfectes: cada jornada requereix un nombre parell d'equips perquè tothom jugui exactament un cop.`,
+        `Amb ${n} equips no es pot generar una lliga justa amb ${fightCount} combat${fightCount !== 1 ? 's' : ''} per equip.`,
       ],
     };
   }
 
-  const maxUnique = n - 1;
-  const effectiveFightCount = Math.min(fightCount, maxUnique);
-
   if (maxUnique < fightCount) {
     warnings.push(
       `Amb ${n} equips, el màxim de combats únics possibles és ${maxUnique}. ` +
-      `La fase 1 s'ha ajustat a ${effectiveFightCount} jornades per mantenir combats únics.`
+      `La fase 1 s'ha ajustat a ${effectiveFightCount} combats per equip per mantenir combats únics.`
     );
   }
 
-  const roundRobinRounds = buildRoundRobinRounds(teams).slice(0, effectiveFightCount);
+  const shuffledTeams = shuffle([...teams]);
+  const allRoundRobinRounds = buildRoundRobinRounds(shuffledTeams);
+  const roundRobinRounds = n % 2 === 0
+    ? allRoundRobinRounds.slice(0, effectiveFightCount)
+    : selectFairOddTeamPairings(shuffledTeams, allRoundRobinRounds, effectiveFightCount);
   const rounds: Round[] = roundRobinRounds.map((pairings, roundIndex) => ({
     number: roundIndex + 1,
     battles: pairings.map(([teamA, teamB], battleIndex) => ({
