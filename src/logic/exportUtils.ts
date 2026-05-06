@@ -2,8 +2,10 @@
  * Export utilities for sharing and downloading battle results.
  */
 
-import type { Battle } from './battleGenerator';
+import type { Battle, Round } from './battleGenerator';
 import type { Bracket } from './bracketGenerator';
+import type { MatchScore } from './scoreUtils';
+import { buildPhase1BattlesWorkbook } from './xlsxUtils';
 
 /**
  * Copy text to the system clipboard.
@@ -71,6 +73,25 @@ export function formatBracketAsText(bracket: Bracket): string {
  */
 export function downloadAsText(content: string, filename = 'aessbot-combats.txt'): void {
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  downloadBlob(blob, filename);
+}
+
+export function downloadPhase1BattlesAsExcel(
+  rounds: Round[],
+  scores: Record<string, MatchScore>,
+  roundsToWin: number,
+  filename = 'aessbot-combats.xlsx',
+): void {
+  const workbook = buildPhase1BattlesWorkbook(rounds, scores, roundsToWin);
+  const workbookBuffer = new ArrayBuffer(workbook.byteLength);
+  new Uint8Array(workbookBuffer).set(workbook);
+  const blob = new Blob([workbookBuffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  downloadBlob(blob, filename);
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

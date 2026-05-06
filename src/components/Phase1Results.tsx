@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Round } from '../logic/battleGenerator';
 import BattleTimer from './BattleTimer';
 import { calcBattleDuration, calcPhase1Duration, formatDuration } from '../logic/battleGenerator';
-import { copyToClipboard, formatBattlesAsText, downloadAsText } from '../logic/exportUtils';
+import { copyToClipboard, formatBattlesAsText, downloadPhase1BattlesAsExcel } from '../logic/exportUtils';
 import type { Battle } from '../logic/battleGenerator';
 import type { TimerState } from '../logic/timerUtils';
 import {
@@ -118,7 +118,7 @@ export default function Phase1Results({
   }
 
   function handleDownload() {
-    downloadAsText(formatBattlesAsText(battles));
+    downloadPhase1BattlesAsExcel(rounds, battleScores, roundsToWin);
   }
 
   return (
@@ -174,8 +174,9 @@ export default function Phase1Results({
             id="btn-download-battles"
             className="btn btn--secondary"
             onClick={handleDownload}
+            title="Exportar combats en Excel"
           >
-            ⬇ Exportar
+            ⬇ Excel
           </button>
         </div>
       </div>

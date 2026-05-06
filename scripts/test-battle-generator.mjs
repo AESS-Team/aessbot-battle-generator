@@ -77,6 +77,7 @@ function assertOddTeamGeneration(result, teams) {
 const { generateBattles } = await loadTs('src/logic/battleGenerator.ts');
 const { getDirectQualifiedCount } = await loadTs('src/logic/standingsUtils.ts');
 const { createGeneratedPhase3BracketState } = await loadTs('src/logic/phase3Publication.ts');
+const { buildPhase1BattlesWorkbook } = await loadTs('src/logic/xlsxUtils.ts');
 const teams = Array.from({ length: 15 }, (_, index) => `Team ${index + 1}`);
 const result = generateBattles(teams, { fightCount: 8 });
 
@@ -99,5 +100,24 @@ assert(
   publishedBracketState.phase3BracketPublished === true,
   'Expected generated phase 3 brackets to be visible in spectator mode immediately'
 );
+
+const workbookBytes = buildPhase1BattlesWorkbook(
+  [{
+    number: 1,
+    battles: [
+      { id: 'battle-1', teamA: 'Ashfu', teamB: 'Bobobot', repeated: false },
+      { id: 'battle-2', teamA: 'Brouston', teamB: 'Clanker', repeated: false },
+    ],
+  }],
+  { 'battle-1': { rounds: ['teamA', 'teamB', 'teamA'] } },
+  2
+);
+const workbookText = new TextDecoder().decode(workbookBytes);
+assert(workbookBytes[0] === 0x50 && workbookBytes[1] === 0x4b, 'Expected XLSX ZIP signature');
+assert(workbookText.includes('xl/worksheets/sheet1.xml'), 'Expected worksheet entry in XLSX');
+assert(workbookText.includes('Guanyador'), 'Expected winner column in battle export');
+assert(workbookText.includes('Ashfu'), 'Expected team names in battle export');
+assert(workbookText.includes('Completat'), 'Expected completed battles in battle export');
+assert(workbookText.includes('Pendent'), 'Expected pending battles in battle export');
 
 console.log('battleGenerator odd-team tests passed');
